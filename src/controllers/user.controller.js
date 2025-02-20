@@ -5,6 +5,7 @@ const AppError = require("../utils/appError"); // Custom error class
 const sendEmail = require("../configs/email");
 const crypto = require("crypto");
 const BlacklistedToken = require("../models/blacklistedToken.model");
+const APIFeatures = require("../utils/apiFeatures");
 
 // Hàm tạo JWT token
 const signToken = (id) => {
@@ -67,13 +68,22 @@ exports.login = catchAsync(async (req, res, next) => {
 
 // Lấy tất cả users (ví dụ, chỉ admin mới có quyền)
 exports.getAllUsers = catchAsync(async (req, res, next) => {
-  const users = await User.find();
+  const features = new APIFeatures(User.find(), req.query).paginate();
+
+  const users = await features.query;
+
+  const totalUsers = await User.countDocuments();
+  const totalPages = Math.ceil(totalUsers / features.limit);
 
   res.status(200).json({
     status: "success",
     results: users.length,
     data: {
       users,
+      page: features.page,
+      limit: features.limit,
+      totalPages,
+      totalUsers,
     },
   });
 });
