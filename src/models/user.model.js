@@ -9,6 +9,16 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ["user", "admin"], default: "user" },
     photo: { type: String, default: "default.jpg" }, // Thêm trường photo
+    skills: [
+      {
+        skillId: { type: mongoose.Schema.Types.ObjectId, ref: "Skill" },
+        level: {
+          type: String,
+          enum: ["Beginner", "Intermediate", "Advanced"],
+          required: true,
+        },
+      },
+    ],
     active: { type: Boolean, default: false }, // Trạng thái đã xác thực email
     passwordResetToken: String,
     passwordResetExpires: Date,
