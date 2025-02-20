@@ -1,0 +1,21 @@
+{
+  "name": "skill-exchange",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "OnlyA",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongodb": "^6.13.0",
+    "mongoose": "^8.10.1",
+    "nodemon": "^3.1.9"
+  }
+}
