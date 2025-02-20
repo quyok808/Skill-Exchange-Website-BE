@@ -2,7 +2,7 @@ const User = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 const catchAsync = require("../utils/catchAsync"); // Helper function to catch errors in async functions
 const AppError = require("../utils/appError"); // Custom error class
-const sendEmail = require("../utils/email");
+const sendEmail = require("../configs/email");
 const crypto = require("crypto");
 const BlacklistedToken = require("../models/blacklistedToken.model");
 
@@ -272,6 +272,22 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
       )
     );
   }
+});
+
+//Get profile
+exports.getMe = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user.id).select("-password"); // Loại bỏ trường password; // Lấy user từ req.user.id
+
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user,
+    },
+  });
 });
 
 // Reset mật khẩu

@@ -20,6 +20,7 @@ router.put(
   userController.uploadUserPhoto
 ); //Route upload ảnh, cần user đã login
 router.post("/send-verification-email", userController.sendVerificationEmail);
+router.get("/me", userController.getMe);
 
 // Các route cần xác thực (chỉ admin mới có quyền)
 router.use(authMiddleware.protect, authMiddleware.restrictTo("admin")); // Áp dụng middleware cho các route phía dưới
