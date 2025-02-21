@@ -68,11 +68,44 @@ exports.login = catchAsync(async (req, res, next) => {
 
 // Lấy tất cả users (ví dụ, chỉ admin mới có quyền)
 exports.getAllUsers = catchAsync(async (req, res, next) => {
-  const features = new APIFeatures(User.find(), req.query).paginate();
+  const features = new APIFeatures(User.find(), req.query)
+    .filter()
+    .sort()
+    .paginate();
 
   const users = await features.query;
 
-  const totalUsers = await User.countDocuments();
+  // const totalUsers = await User.countDocuments();
+  const totalUsers = await User.countDocuments(features.mongoQuery); // Đếm số lượng user sau khi filter
+  const totalPages = Math.ceil(totalUsers / features.limit);
+
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    data: {
+      users,
+      page: features.page,
+      limit: features.limit,
+      totalPages,
+      totalUsers,
+    },
+  });
+});
+
+// Lấy tất cả users (dành cho user - search user)
+exports.searchUser = catchAsync(async (req, res, next) => {
+  const features = new APIFeatures(
+    User.find().select(["-password", "-role", "-active"]),
+    req.query
+  )
+    .filter()
+    .sort()
+    .paginate();
+
+  const users = await features.query;
+
+  // const totalUsers = await User.countDocuments();
+  const totalUsers = await User.countDocuments(features.mongoQuery); // Đếm số lượng user sau khi filter
   const totalPages = Math.ceil(totalUsers / features.limit);
 
   res.status(200).json({
@@ -290,6 +323,25 @@ exports.getMe = catchAsync(async (req, res, next) => {
 
   if (!user) {
     return next(new AppError("User not found", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user,
+    },
+  });
+});
+
+//Update profile
+exports.updateMe = catchAsync(async (req, res, next) => {
+  const user = await User.findByIdAndUpdate(req.user.id, req.body, {
+    new: true, // Trả về user đã được cập nhật
+    runValidators: true, // Chạy các validators trong schema
+  });
+
+  if (!user) {
+    return next(new AppError("No user found with that ID", 404));
   }
 
   res.status(200).json({

@@ -13,7 +13,7 @@ router.get("/verify-email/:token", userController.verifyEmail); // Route để x
 router.post("/logout", authMiddleware.protect, userController.logout); // Thêm route logout
 
 router.use(authMiddleware.protect); // Apply protect middleware
-
+// Các route cần xác thực (Tất cả role)
 router.put(
   "/upload-photo",
   uploadMiddleware.uploadUserPhoto,
@@ -21,8 +21,10 @@ router.put(
 ); //Route upload ảnh, cần user đã login
 router.post("/send-verification-email", userController.sendVerificationEmail);
 router.get("/me", userController.getMe);
+router.put("/update-profile", userController.updateMe);
+router.get("/search-user", userController.searchUser);
 
-// Các route cần xác thực (chỉ admin mới có quyền)
+// Các route cần xác thực (chỉ role admin mới có quyền)
 router.use(authMiddleware.protect, authMiddleware.restrictTo("admin")); // Áp dụng middleware cho các route phía dưới
 router.get("/", userController.getAllUsers);
 router.get("/:id", userController.getUser);
