@@ -13,3 +13,4 @@
 - mongoose
 - nodemailer
 - multer
+- winston
