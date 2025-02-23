@@ -12,7 +12,7 @@ const logger = winston.createLogger({
     })
   ),
   transports: [
-    new winston.transports.Console(), // Ghi log ra console
+    // new winston.transports.Console(), // Ghi log ra console
     new winston.transports.File({ filename: "logs/app.log" }), // Ghi log ra file
   ],
 });
