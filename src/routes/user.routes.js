@@ -2,10 +2,11 @@ const express = require("express");
 const userController = require("../controllers/user.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 const uploadMiddleware = require("../middlewares/upload.middleware");
+const { validateRegister } = require("../middlewares/validate.middleware");
 
 const router = express.Router();
 
-router.post("/register", userController.register);
+router.post("/register", validateRegister, userController.register);
 router.post("/login", userController.login);
 router.post("/forgot-password", userController.forgotPassword); // Route để quên mật khẩu
 router.put("/reset-password/:token", userController.resetPassword); // Route để reset mật khẩu

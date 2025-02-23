@@ -14,3 +14,4 @@
 - nodemailer
 - multer
 - winston
+- express-validator
