@@ -320,3 +320,22 @@ exports.updateMe = async (id, updateUserData) => {
     throw error;
   }
 };
+
+exports.changePassword = async (id, pass) => {
+  try {
+    // 1) Get user from collection
+    const user = await User.findById(id).select("+password");
+
+    // 2) Check if posted current password is correct
+    if (!(await user.comparePassword(pass.passwordCurrent, user.password))) {
+      throw new AppError("Wrong password", 401);
+    }
+
+    // 3) If so, update password
+    user.password = pass.password;
+    user.passwordChangedAt = Date.now() - 1000;
+    await user.save();
+  } catch (error) {
+    throw error;
+  }
+};

@@ -28,6 +28,11 @@ router.put(
   userController.uploadUserPhoto
 ); //Route upload ảnh, cần user đã login
 router.post("/send-verification-email", userController.sendVerificationEmail);
+router.put(
+  "/change-password",
+  validateResetPassword,
+  userController.changePassword
+);
 router.get("/me", userController.getMe);
 router.put("/update-profile", userController.updateMe);
 router.get("/search-user", userController.searchUser);

@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: Date,
     emailVerificationToken: String, // Thêm token để xác thực email
     emailVerificationExpires: Date,
+    passwordChangedAt: Date,
   },
   { timestamps: true }
 );
@@ -34,6 +35,7 @@ userSchema.pre("save", async function (next) {
     return next();
   }
   this.password = await bcrypt.hash(this.password, 12);
+  this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 
@@ -71,4 +73,17 @@ userSchema.methods.createEmailVerificationToken = function () {
   return verificationToken;
 };
 
+userSchema.methods.changedAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+
+    return JWTTimestamp < changedTimestamp;
+  }
+
+  // False nghĩa là chưa thay đổi
+  return false;
+};
 module.exports = mongoose.model("User", userSchema);

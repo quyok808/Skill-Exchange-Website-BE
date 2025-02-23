@@ -40,6 +40,13 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
+  // 5) Kiểm tra xem user có thay đổi password sau khi token được tạo không
+  if (currentUser.changedAfter(decoded.iat)) {
+    return next(
+      new AppError("User recently changed password! Please log in again.", 401)
+    );
+  }
+
   // Gán user vào request
   req.user = currentUser;
   next();
