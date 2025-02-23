@@ -270,7 +270,7 @@ exports.resetPassword = async (token, password) => {
 
     // 2) Nếu token chưa hết hạn và có user, đặt lại password
     if (!user) {
-      return next(new AppError("Token is invalid or has expired", 400));
+      throw new AppError("Token is invalid or has expired", 400);
     }
     user.password = password;
     user.passwordResetToken = undefined;

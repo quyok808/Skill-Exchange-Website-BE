@@ -2,14 +2,21 @@ const express = require("express");
 const userController = require("../controllers/user.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 const uploadMiddleware = require("../middlewares/upload.middleware");
-const { validateRegister } = require("../middlewares/validate.middleware");
+const {
+  validateRegister,
+  validateResetPassword,
+} = require("../middlewares/validate.middleware");
 
 const router = express.Router();
 
 router.post("/register", validateRegister, userController.register);
 router.post("/login", userController.login);
 router.post("/forgot-password", userController.forgotPassword); // Route để quên mật khẩu
-router.put("/reset-password/:token", userController.resetPassword); // Route để reset mật khẩu
+router.put(
+  "/reset-password/:token",
+  validateResetPassword,
+  userController.resetPassword
+); // Route để reset mật khẩu
 router.get("/verify-email/:token", userController.verifyEmail); // Route để xác thực email
 router.post("/logout", authMiddleware.protect, userController.logout); // Thêm route logout
 
