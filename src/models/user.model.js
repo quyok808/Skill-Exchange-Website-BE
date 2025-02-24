@@ -9,11 +9,22 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ["user", "admin"], default: "user" },
     photo: { type: String, default: "default.jpg" }, // Thêm trường photo
+    skills: [
+      {
+        skillId: { type: mongoose.Schema.Types.ObjectId, ref: "Skill" },
+        level: {
+          type: String,
+          enum: ["Beginner", "Intermediate", "Advanced"],
+          required: true,
+        },
+      },
+    ],
     active: { type: Boolean, default: false }, // Trạng thái đã xác thực email
     passwordResetToken: String,
     passwordResetExpires: Date,
     emailVerificationToken: String, // Thêm token để xác thực email
     emailVerificationExpires: Date,
+    passwordChangedAt: Date,
   },
   { timestamps: true }
 );
@@ -24,6 +35,7 @@ userSchema.pre("save", async function (next) {
     return next();
   }
   this.password = await bcrypt.hash(this.password, 12);
+  this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 
@@ -61,4 +73,17 @@ userSchema.methods.createEmailVerificationToken = function () {
   return verificationToken;
 };
 
+userSchema.methods.changedAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+
+    return JWTTimestamp < changedTimestamp;
+  }
+
+  // False nghĩa là chưa thay đổi
+  return false;
+};
 module.exports = mongoose.model("User", userSchema);

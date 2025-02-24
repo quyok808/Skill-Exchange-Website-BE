@@ -1,3 +1,4 @@
+const logger = require("./logger");
 class AppError extends Error {
   constructor(message, statusCode) {
     super(message);
@@ -6,6 +7,7 @@ class AppError extends Error {
     this.isOperational = true;
 
     Error.captureStackTrace(this, this.constructor);
+    logger.error(`${this.stack}`);
   }
 }
 
