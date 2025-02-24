@@ -191,7 +191,11 @@ exports.logout = catchAsync(async (req, res, next) => {
 });
 
 exports.changePassword = catchAsync(async (req, res, next) => {
-  await userService.changePassword(req.user.id, req.body);
+  await userService.changePassword(
+    req.user.id,
+    req.body,
+    req.headers.authorization.split(" ")[1]
+  );
 
   res.status(200).json({
     status: "success",

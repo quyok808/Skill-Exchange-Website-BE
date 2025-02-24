@@ -321,7 +321,7 @@ exports.updateMe = async (id, updateUserData) => {
   }
 };
 
-exports.changePassword = async (id, pass) => {
+exports.changePassword = async (id, pass, currentToken) => {
   try {
     // 1) Get user from collection
     const user = await User.findById(id).select("+password");
@@ -335,6 +335,8 @@ exports.changePassword = async (id, pass) => {
     user.password = pass.password;
     user.passwordChangedAt = Date.now() - 1000;
     await user.save();
+
+    this.logout(currentToken);
   } catch (error) {
     throw error;
   }
