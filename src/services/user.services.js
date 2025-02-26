@@ -77,19 +77,35 @@ exports.getAllUsers = async (query) => {
 
 exports.searchUser = async (query) => {
   try {
+    let findConditions = {};
+
+    // Nếu có skillName, tìm các skill khớp trước
+    if (query.skillName) {
+      const skillIds = await Skill.find({
+        name: { $regex: query.skillName, $options: "i" },
+      }).distinct("_id"); // Lấy danh sách ObjectId của skills khớp
+
+      if (skillIds.length > 0) {
+        findConditions.skills = { $in: skillIds }; // Lọc user có skills trong danh sách
+      } else {
+        return { users: [], features: null, totalUsers: 0, totalPages: 0 }; // Không tìm thấy skill nào khớp
+      }
+    }
+
     const features = new APIFeatures(
-      User.find().populate("skills").select(["-password", "-role", "-active"]),
+      User.find(findConditions)
+        .populate("skills")
+        .select(["-password", "-role", "-active"]),
       query
     )
       .filter()
       .sort()
       .paginate();
-
     const users = await features.query;
 
-    // const totalUsers = await User.countDocuments();
-    const totalUsers = await User.countDocuments(features.mongoQuery); // Đếm số lượng user sau khi filter
+    const totalUsers = await User.countDocuments(features.mongoQuery);
     const totalPages = Math.ceil(totalUsers / features.limit);
+
     return { users, features, totalUsers, totalPages };
   } catch (error) {
     throw error;
