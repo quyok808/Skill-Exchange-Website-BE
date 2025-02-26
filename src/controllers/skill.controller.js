@@ -28,3 +28,13 @@ exports.createSkill = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+exports.deleteSkill = catchAsync(async (req, res, next) => {
+  await skillService.delete(req.params.id);
+  res.status(204).json({ status: "success", data: null }); // 204 No Content
+});
+
+exports.updateSkill = catchAsync(async (req, res, next) => {
+  const skill = await skillService.update(req.params.id, req.body);
+  res.status(200).json({ status: "success", data: { skill } });
+});
