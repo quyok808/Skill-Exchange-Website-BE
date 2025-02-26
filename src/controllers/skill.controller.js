@@ -2,7 +2,7 @@ const catchAsync = require("../utils/catchAsync"); // Helper function to catch e
 const skillService = require("../services/skill.services");
 
 exports.getAllSkill = catchAsync(async (req, res, next) => {
-  const { skills, features, totalPages, totalUsers } =
+  const { skills, features, totalPages, totalSkills } =
     await skillService.getAllSkills(req.query);
 
   res.status(200).json({
@@ -13,7 +13,7 @@ exports.getAllSkill = catchAsync(async (req, res, next) => {
       page: features.page,
       limit: features.limit,
       totalPages,
-      totalUsers,
+      totalSkills,
     },
   });
 });

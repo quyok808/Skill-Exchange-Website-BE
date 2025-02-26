@@ -5,6 +5,8 @@ const crypto = require("crypto");
 const sendEmail = require("../configs/email");
 const BlacklistedToken = require("../models/blacklistedToken.model");
 const APIFeatures = require("../utils/apiFeatures");
+const Skill = require("../models/skill.model");
+const skillService = require("../services/skill.services");
 
 // Hàm tạo JWT token
 const signToken = (id) => {
@@ -57,7 +59,7 @@ exports.login = async (loginInfo) => {
 
 exports.getAllUsers = async (query) => {
   try {
-    const features = new APIFeatures(User.find(), query)
+    const features = new APIFeatures(User.find().populate("skills"), query)
       .filter()
       .sort()
       .paginate();
@@ -76,7 +78,7 @@ exports.getAllUsers = async (query) => {
 exports.searchUser = async (query) => {
   try {
     const features = new APIFeatures(
-      User.find().select(["-password", "-role", "-active"]),
+      User.find().populate("skills").select(["-password", "-role", "-active"]),
       query
     )
       .filter()
@@ -96,7 +98,7 @@ exports.searchUser = async (query) => {
 
 exports.get = async (id) => {
   try {
-    const user = await User.findById(id);
+    const user = await User.findById(id).populate("skills");
 
     if (!user) {
       throw new AppError("No user found with that ID", 404);
@@ -115,7 +117,7 @@ exports.put = async (id, updateUserData) => {
     });
 
     if (!user) {
-      return next(new AppError("No user found with that ID", 404));
+      throw new AppError("No user found with that ID", 404);
     }
   } catch (error) {
     throw error;
@@ -144,7 +146,7 @@ exports.uploadAvatar = async (id, filename) => {
         new: true,
         runValidators: true,
       }
-    );
+    ).populate("skills");
     if (!user) {
       return next(new AppError("No user found with that ID", 404));
     }
@@ -294,13 +296,15 @@ exports.logout = async (token) => {
 
 exports.me = async (id) => {
   try {
-    const user = await User.findById(id).select("-password"); // Loại bỏ trường password; // Lấy user từ req.user.id
+    // Bước 2: Thực hiện populate
+    const user = await User.findById(id).populate("skills").select("-password");
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
     return user;
   } catch (error) {
+    console.error("Error:", error);
     throw error;
   }
 };
@@ -310,7 +314,7 @@ exports.updateMe = async (id, updateUserData) => {
     const user = await User.findByIdAndUpdate(id, updateUserData, {
       new: true, // Trả về user đã được cập nhật
       runValidators: true, // Chạy các validators trong schema
-    });
+    }).populate("skills");
 
     if (!user) {
       return next(new AppError("No user found with that ID", 404));
@@ -337,6 +341,36 @@ exports.changePassword = async (id, pass, currentToken) => {
     await user.save();
 
     this.logout(currentToken);
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.addSkillToUser = async (userId, skillData) => {
+  try {
+    // 1) Tìm skill trong database
+    let skill = await Skill.findOne(skillData);
+
+    // 2) Nếu skill không tồn tại, tạo skill mới
+    if (!skill) {
+      skill = await Skill.create(skillData);
+    }
+
+    // 3) Tìm user
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    // 4) Kiểm tra xem skill đã có trong user chưa
+    if (user.skills.includes(skill._id)) {
+      throw new AppError("Skill already exists for this user", 400);
+    }
+
+    // 5) Thêm skill vào user
+    user.skills.push(skill._id);
+    await user.save();
+    return user.populate("skills");
   } catch (error) {
     throw error;
   }
