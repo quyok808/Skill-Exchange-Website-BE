@@ -8,4 +8,8 @@ router.use(authMiddleware.protect); // Áp dụng middleware cho các route phí
 router.post("/", skillController.createSkill);
 router.get("/", skillController.getAllSkill);
 
+router.use(authMiddleware.protect, authMiddleware.restrictTo("admin"));
+router.put("/:id", skillController.updateSkill);
+router.delete("/:id", skillController.deleteSkill);
+
 module.exports = router;

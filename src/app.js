@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const userRoutes = require("./routes/user.routes");
-const ideaRoutes = require("./routes/idea.route");
 const skillRoutes = require("./routes/skill.route");
 const errorMiddleware = require("./middlewares/error.middleware");
 
@@ -15,7 +14,6 @@ app.use(morgan("dev")); // Log HTTP requests
 
 // Routes
 app.use("/api/users", userRoutes);
-app.use("/api/ideas", ideaRoutes);
 app.use("/api/skill", skillRoutes);
 
 // Error handling middleware (luôn đặt cuối cùng)

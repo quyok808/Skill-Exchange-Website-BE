@@ -3,11 +3,7 @@ const mongoose = require("mongoose");
 const SkillSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
-    description: { type: String },
-    category: {
-      type: String,
-      enum: ["Frontend", "Backend", "Mobile", "Database", "DevOps", "Other"],
-    },
+    // description: { type: String },
   },
   { timestamps: true }
 );
