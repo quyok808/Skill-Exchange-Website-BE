@@ -1,4 +1,5 @@
 const ChatRoom = require("../models/chat.model");
+const cron = require("node-cron");
 const Connection = require("../models/connections.model")
 
 //Gửi yêu cầu kết nối
@@ -101,18 +102,42 @@ exports.rejectRequest = async (req, res) =>{
             return res.status(403).json({ message: "Không có quyền xử lý yêu cầu này!" });
         }
 
-        await Connection.deleteOne();
-        res.json({ message: "Yêu cầu kết nối bị từ chối"});
+        connection.status = "rejected";
+        connection.rejectedAt = new Date();
+        await connection.save();
+
+        res.json({ message: "Yêu cầu kết nối bị từ chối! Sẽ tự động xóa sau 24h." });
 
     } catch (error) {
         res.status(500).json({ message: "Lỗi server", error });
     }
 };
 
+cron.schedule("0 * * * *", async () => {
+    console.log("🔄 Kiểm tra và xóa yêu cầu từ chối quá 24h...");
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    try {
+        const result = await Connection.deleteMany({ 
+            status: "rejected", 
+            rejectedAt: { $lte: twentyFourHoursAgo } 
+        });
+        console.log(`✅ Đã xóa ${result.deletedCount} yêu cầu kết nối bị từ chối quá 24h.`);
+    } catch (error) {
+        console.error("❌ Lỗi khi xóa yêu cầu từ chối quá 24h:", error);
+    }
+});
+
 // Lấy danh sách yêu cầu kết nối đang chờ xử lý
 exports.getPendingrequests = async(req,res)=>{
     try {
-        const pendingRequests = await Connection.find({ receiverId: req.user.id, status: "pending" }).populate("senderId", "name email");
+        const pendingRequests = await Connection.find({
+            $or: [
+                {receiverId: req.user.id},
+                {senderId: req.user.id}
+            ]
+        }).populate("senderId", "name email").populate("receiverId", "name email" );
         res.json(pendingRequests);
     } catch (error) {
         res.status(500).json({ message: "Lỗi server", error });
