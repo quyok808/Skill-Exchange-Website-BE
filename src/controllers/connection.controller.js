@@ -1,6 +1,7 @@
 const ChatRoom = require("../models/chat.model");
 const cron = require("node-cron");
-const Connection = require("../models/connections.model")
+const Connection = require("../models/connections.model");
+const { connections } = require("mongoose");
 
 //Gửi yêu cầu kết nối
 exports.sendRequest = async(req, res)=>{
@@ -19,9 +20,15 @@ exports.sendRequest = async(req, res)=>{
             ]
         });
 
-        if(existingRequest){
+        if(existingRequest && existingRequest.status === "pending"){
             return res.status(400).json({message:"Bạn đã có kết nối"});
         }
+
+        if (existingRequest && existingRequest.status === "rejected") {
+            await Connection.findByIdAndDelete(existingRequest._id);  // Xóa yêu cầu cũ
+        }
+ 
+        
         const newConnection = new Connection({senderId, receiverId, skill,status: "pending" });
         await newConnection.save();
         res.status(201).json({ message: "Yêu cầu kết nối đã được gửi!" });
@@ -94,7 +101,7 @@ exports.disconnect = async(req,res) => {
 exports.rejectRequest = async (req, res) =>{
     try {
         const connection = await Connection.findById(req.params.id);
-        if(!Connection){
+        if(!connection){
             return res.status(400).json({message: "Không có yêu cầu  kết nối"});
         }
 
@@ -106,15 +113,18 @@ exports.rejectRequest = async (req, res) =>{
         connection.rejectedAt = new Date();
         await connection.save();
 
-        res.json({ message: "Yêu cầu kết nối bị từ chối! Sẽ tự động xóa sau 24h." });
+        res.json({ message: "Yêu cầu kết nối bị từ chối! Sẽ tự động xóa sau 24h.",
+            data: connection
+        });
 
     } catch (error) {
+        console.error("❌ Lỗi server:", error);
         res.status(500).json({ message: "Lỗi server", error });
     }
 };
 
 cron.schedule("0 * * * *", async () => {
-    console.log("🔄 Kiểm tra và xóa yêu cầu từ chối quá 24h...");
+    console.log("Kiểm tra và xóa yêu cầu từ chối quá 24h...");
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
@@ -123,9 +133,9 @@ cron.schedule("0 * * * *", async () => {
             status: "rejected", 
             rejectedAt: { $lte: twentyFourHoursAgo } 
         });
-        console.log(`✅ Đã xóa ${result.deletedCount} yêu cầu kết nối bị từ chối quá 24h.`);
+        console.log(`Đã xóa ${result.deletedCount} yêu cầu kết nối bị từ chối quá 24h.`);
     } catch (error) {
-        console.error("❌ Lỗi khi xóa yêu cầu từ chối quá 24h:", error);
+        console.error("Lỗi khi xóa yêu cầu từ chối quá 24h:", error);
     }
 });
 
