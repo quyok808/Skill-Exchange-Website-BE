@@ -1,12 +1,15 @@
-const express =require("express");
+const express = require("express");
 const connectionController = require("../controllers/connection.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 const router = express.Router();
 
-router.post("/request", authMiddleware.protect,connectionController.sendRequest);
-router.put("/:id/accept", authMiddleware.protect, connectionController.acceptRequest);
-router.delete("/:id/reject", authMiddleware.protect,connectionController.rejectRequest);
-router.delete("/disconnect", authMiddleware.protect,connectionController.disconnect);
-router.get("/pending", authMiddleware.protect, connectionController.getPendingrequests);
+router.use(authMiddleware.protect);
+
+router.post("/request", connectionController.sendRequest);
+router.put("/:id/accept", connectionController.acceptRequest);
+router.delete("/:id/reject", connectionController.rejectRequest);
+router.delete("/disconnect", connectionController.disconnect);
+router.get("/", connectionController.getAllrequests);
+router.get("/pending", connectionController.getPendingrequests);
 
 module.exports = router;
