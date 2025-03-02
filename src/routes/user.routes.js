@@ -37,6 +37,7 @@ router.get("/me", userController.getMe);
 router.put("/update-profile", userController.updateMe);
 router.get("/search-user", userController.searchUser);
 router.put("/add-skill", userController.addSkillToUser);
+router.get("/profile/image", userController.getImage); // Route để lấy ảnh avatar
 
 // Các route cần xác thực (chỉ role admin mới có quyền)
 router.use(authMiddleware.protect, authMiddleware.restrictTo("admin")); // Áp dụng middleware cho các route phía dưới

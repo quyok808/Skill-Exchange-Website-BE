@@ -1,5 +1,6 @@
 const catchAsync = require("../utils/catchAsync"); // Helper function to catch errors in async functions
 const userService = require("../services/user.services");
+const fs = require("fs");
 
 // Đăng ký người dùng mới
 exports.register = catchAsync(async (req, res, next) => {
@@ -217,5 +218,25 @@ exports.addSkillToUser = catchAsync(async (req, res, next) => {
     data: {
       user,
     },
+  });
+});
+
+exports.getImage = catchAsync(async (req, res, next) => {
+  const absolutePath = await userService.getImagePath(req.user.id);
+  // Đọc file ảnh và mã hóa thành Base64
+  fs.readFile(absolutePath, (err, data) => {
+    if (err) {
+      console.error("Lỗi đọc file:", err);
+      return next(new AppError("Error reading image", 500));
+    }
+
+    const base64Image = data.toString("base64"); // Mã hóa thành Base64
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        image: `data:image/jpeg;base64,${base64Image}`, // Tạo Data URI
+      },
+    });
   });
 });
