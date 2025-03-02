@@ -6,6 +6,12 @@ exports.register = catchAsync(async (req, res, next) => {
   try {
     const { user, token } = await userService.register(req.body);
 
+    await userService.sendVerificationEmail(
+      user.id,
+      req.protocol,
+      req.get("host")
+    );
+
     res.status(201).json({
       status: "success",
       token,
