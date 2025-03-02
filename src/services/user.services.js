@@ -6,7 +6,7 @@ const sendEmail = require("../configs/email");
 const BlacklistedToken = require("../models/blacklistedToken.model");
 const APIFeatures = require("../utils/apiFeatures");
 const Skill = require("../models/skill.model");
-const skillService = require("../services/skill.services");
+const path = require("path");
 
 // Hàm tạo JWT token
 const signToken = (id) => {
@@ -387,6 +387,27 @@ exports.addSkillToUser = async (userId, skillData) => {
     user.skills.push(skill._id);
     await user.save();
     return user.populate("skills");
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.getImagePath = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const imagePath = user.photo;
+
+    if (!imagePath) {
+      throw new AppError("Image not found", 404);
+    }
+
+    const absolutePath = path.join(__dirname, "../uploads/avatars", imagePath);
+    return absolutePath;
   } catch (error) {
     throw error;
   }

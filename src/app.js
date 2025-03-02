@@ -5,6 +5,7 @@ const userRoutes = require("./routes/user.routes");
 const connectionRoutes = require("./routes/connection.route");
 const skillRoutes = require("./routes/skill.route");
 const errorMiddleware = require("./middlewares/error.middleware");
+const path = require("path");
 
 const app = express();
 
@@ -12,6 +13,12 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // Parse JSON request body
 app.use(morgan("dev")); // Log HTTP requests
+
+// Phục vụ static files
+app.use(
+  "/uploads/avatars",
+  express.static(path.join(__dirname, "uploads/avatars"))
+); // Thêm dòng này
 
 // Routes
 app.use("/api/users", userRoutes);
