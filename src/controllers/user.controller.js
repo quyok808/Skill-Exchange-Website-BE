@@ -208,3 +208,14 @@ exports.changePassword = catchAsync(async (req, res, next) => {
     message: "Password has been changed!",
   });
 });
+
+exports.addSkillToUser = catchAsync(async (req, res, next) => {
+  const user = await userService.addSkillToUser(req.user.id, req.body);
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user,
+    },
+  });
+});
