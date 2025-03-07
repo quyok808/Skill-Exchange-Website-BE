@@ -21,7 +21,7 @@ class APIFeatures {
       mongoQuery.email = { $regex: queryObj.email, $options: "i" }; // Tìm kiếm gần đúng (không phân biệt chữ hoa/thường)
     }
     if (queryObj.address) {
-      mongoQuery.address = { $regex: queryObj.address, $option: "i" };
+      mongoQuery.address = { $regex: queryObj.address, $options: "i" };
     }
 
     this.mongoQuery = mongoQuery; // Lưu lại mongoQuery để đếm tổng số
