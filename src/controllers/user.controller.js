@@ -240,3 +240,23 @@ exports.getImage = catchAsync(async (req, res, next) => {
     });
   });
 });
+
+exports.getImageById = catchAsync(async (req, res, next) => {
+  const absolutePath = await userService.getImagePath(req.params.id);
+  // Đọc file ảnh và mã hóa thành Base64
+  fs.readFile(absolutePath, (err, data) => {
+    if (err) {
+      console.error("Lỗi đọc file:", err);
+      return next(new AppError("Error reading image", 500));
+    }
+
+    const base64Image = data.toString("base64"); // Mã hóa thành Base64
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        image: `data:image/jpeg;base64,${base64Image}`, // Tạo Data URI
+      },
+    });
+  });
+});

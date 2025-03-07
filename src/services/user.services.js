@@ -7,6 +7,7 @@ const BlacklistedToken = require("../models/blacklistedToken.model");
 const APIFeatures = require("../utils/apiFeatures");
 const Skill = require("../models/skill.model");
 const path = require("path");
+const logger = require("../utils/logger");
 
 // Hàm tạo JWT token
 const signToken = (id) => {
@@ -84,7 +85,10 @@ exports.searchUser = async (query) => {
       const skillIds = await Skill.find({
         name: { $regex: query.skillName, $options: "i" },
       }).distinct("_id"); // Lấy danh sách ObjectId của skills khớp
-
+      console.log("Skill ID:", skillIds);
+      if (skillIds.length == 0) {
+        throw new AppError("Không có thông tin kỹ năng", 404);
+      }
       if (skillIds.length > 0) {
         findConditions.skills = { $in: skillIds }; // Lọc user có skills trong danh sách
       } else {
@@ -364,29 +368,68 @@ exports.changePassword = async (id, pass, currentToken) => {
 
 exports.addSkillToUser = async (userId, skillData) => {
   try {
-    // 1) Tìm skill trong database
-    let skill = await Skill.findOne(skillData);
-
-    // 2) Nếu skill không tồn tại, tạo skill mới
-    if (!skill) {
-      skill = await Skill.create(skillData);
+    const skillList = skillData.skills; // Ví dụ: ["Lalala", "Hát"]
+    if (!Array.isArray(skillList)) {
+      throw new AppError("skillData.skills must be an array", 400);
     }
 
-    // 3) Tìm user
     const user = await User.findById(userId);
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    // 4) Kiểm tra xem skill đã có trong user chưa
-    if (user.skills.includes(skill._id)) {
-      throw new AppError("Skill already exists for this user", 400);
+    // 1) Xử lý danh sách kỹ năng gửi lên
+    const skillIds = [];
+    for (const skillItem of skillList) {
+      let skillName;
+      // Nếu là object, chỉ lấy name; nếu là string, dùng trực tiếp
+      if (typeof skillItem === "object" && skillItem.name) {
+        skillName = skillItem.name;
+      } else if (typeof skillItem === "string") {
+        skillName = skillItem;
+      } else {
+        // logger.warn(`Skipping invalid skill: ${skillItem}`);
+        continue;
+      }
+
+      // Kiểm tra xem skillName có phải là _id không
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(skillName);
+      if (isObjectId) {
+        // logger.warn(`Skipping ObjectId as skill name: ${skillName}`);
+        continue;
+      }
+
+      // Tìm hoặc tạo skill
+      let skill = await Skill.findOne({ name: skillName });
+      if (!skill) {
+        skill = await Skill.create({ name: skillName });
+      }
+      skillIds.push(skill._id); // Thêm _id vào danh sách mới
     }
 
-    // 5) Thêm skill vào user
-    user.skills.push(skill._id);
+    // 2) So sánh với danh sách hiện tại và cập nhật
+    // Nếu skillIds không chứa một số _id hiện có trong user.skills, chúng sẽ bị xóa
+    user.skills = skillIds; // Thay thế hoàn toàn danh sách cũ bằng danh sách mới
     await user.save();
-    return user.populate("skills");
+
+    // 3) (Tùy chọn) Xóa các skill không còn được sử dụng khỏi collection Skill
+    // const allUsers = await User.find({ skills: { $exists: true } });
+    // const usedSkillIds = new Set(allUsers.flatMap((u) => u.skills));
+    // const unusedSkills = await Skill.find({
+    //   _id: { $nin: Array.from(usedSkillIds) },
+    // });
+    // if (unusedSkills.length > 0) {
+    //   await Skill.deleteMany({ _id: { $in: unusedSkills.map((s) => s._id) } });
+    //   logger.info(
+    //     `Deleted unused skills: ${unusedSkills.map((s) => s.name).join(", ")}`
+    //   );
+    // }
+
+    // 4) Trả về user đã cập nhật với skills được populate
+    const updatedUser = await User.findById(userId)
+      .populate("skills")
+      .select(["+_id", "+name", "+email"]);
+    return updatedUser;
   } catch (error) {
     throw error;
   }
