@@ -85,7 +85,6 @@ exports.searchUser = async (query) => {
       const skillIds = await Skill.find({
         name: { $regex: query.skillName, $options: "i" },
       }).distinct("_id"); // Lấy danh sách ObjectId của skills khớp
-      console.log("Skill ID:", skillIds);
       if (skillIds.length == 0) {
         throw new AppError("Không có thông tin kỹ năng", 404);
       }
