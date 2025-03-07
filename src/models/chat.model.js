@@ -1,9 +1,14 @@
 const mongoose = require("mongoose");
 
-const ChatSchema = new mongoose.Schema({
-  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }], // Danh sách người tham gia (2 người)
-  lastMessage: { type: String }, // Tin nhắn gần nhất
-  lastMessageTime: { type: Date, default: Date.now },
-});
+const ChatRoomSchema = new mongoose.Schema({
+  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  messages: [
+    {
+      sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      content: { type: String, required: true },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
+}, { timestamps: true });
 
-module.exports = mongoose.model("Chat", ChatSchema);
+module.exports = mongoose.model("ChatRoom", ChatRoomSchema);

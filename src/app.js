@@ -4,7 +4,9 @@ const morgan = require("morgan");
 const userRoutes = require("./routes/user.routes");
 const connectionRoutes = require("./routes/connection.route");
 const skillRoutes = require("./routes/skill.route");
+const chatRoutes = require("./routes/chat.route");
 const errorMiddleware = require("./middlewares/error.middleware");
+
 
 const app = express();
 
@@ -17,8 +19,13 @@ app.use(morgan("dev")); // Log HTTP requests
 app.use("/api/users", userRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/skill", skillRoutes);
+app.use("/api/chats", chatRoutes);
 
 // Error handling middleware (luôn đặt cuối cùng)
 app.use(errorMiddleware);
 
 module.exports = app;
+
+// module.exports = { app};
+
+
