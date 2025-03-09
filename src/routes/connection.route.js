@@ -11,5 +11,6 @@ router.delete("/:id/reject", connectionController.rejectRequest);
 router.delete("/disconnect", connectionController.disconnect);
 router.get("/", connectionController.getAllrequests);
 router.get("/pending", connectionController.getPendingrequests);
+router.get("/accepted", connectionController.getAcceptedRequests);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const User = require("../models/user.model");
+const Connection = require("../models/connections.model");
 const jwt = require("jsonwebtoken");
 const AppError = require("../utils/appError"); // Custom error class
 const crypto = require("crypto");
@@ -7,7 +8,6 @@ const BlacklistedToken = require("../models/blacklistedToken.model");
 const APIFeatures = require("../utils/apiFeatures");
 const Skill = require("../models/skill.model");
 const path = require("path");
-const logger = require("../utils/logger");
 
 // Hàm tạo JWT token
 const signToken = (id) => {
@@ -76,7 +76,7 @@ exports.getAllUsers = async (query) => {
   }
 };
 
-exports.searchUser = async (query) => {
+exports.searchUser = async (query, currentUserId) => {
   try {
     let findConditions = {};
 
@@ -95,6 +95,11 @@ exports.searchUser = async (query) => {
       }
     }
 
+    // Loại trừ user đang đăng nhập
+    if (currentUserId) {
+      findConditions._id = { $ne: currentUserId }; // Thêm điều kiện để loại trừ user hiện tại
+    }
+
     const features = new APIFeatures(
       User.find(findConditions)
         .populate("skills")
@@ -106,6 +111,94 @@ exports.searchUser = async (query) => {
       .paginate();
     const users = await features.query;
 
+    const totalUsers = await User.countDocuments(features.mongoQuery);
+    const totalPages = Math.ceil(totalUsers / features.limit);
+
+    return { users, features, totalUsers, totalPages };
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Hàm tìm kiếm các userId liên quan đến currentUserId
+exports.getRelatedUserIds = async (currentUserId) => {
+  try {
+    // Tìm tất cả các connections mà currentUserId là sender hoặc receiver
+    const connections = await Connection.find({
+      $or: [{ senderId: currentUserId }, { receiverId: currentUserId }],
+    }).select("senderId receiverId"); // Chỉ lấy các trường senderId và receiverId
+
+    // Tạo mảng để lưu các userId liên quan
+    const relatedUserIds = [];
+
+    // Duyệt qua các connections và lấy userId còn lại
+    connections.forEach((connection) => {
+      // Nếu currentUserId là sender, thêm receiverId
+      if (connection.senderId.toString() === currentUserId.toString()) {
+        relatedUserIds.push(connection.receiverId);
+      }
+      // Nếu currentUserId là receiver, thêm senderId
+      else if (connection.receiverId.toString() === currentUserId.toString()) {
+        relatedUserIds.push(connection.senderId);
+      }
+    });
+
+    // Loại bỏ các giá trị trùng lặp (nếu có) và trả về
+    return [...new Set(relatedUserIds.map((id) => id.toString()))];
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.searchUserInNetwork = async (query, currentUserId) => {
+  try {
+    let findConditions = {};
+
+    // Nếu có skillName, tìm các skill khớp trước
+    if (query.skillName) {
+      const skillIds = await Skill.find({
+        name: { $regex: query.skillName, $options: "i" },
+      }).distinct("_id"); // Lấy danh sách ObjectId của skills khớp
+      if (skillIds.length === 0) {
+        return { users: [], features: null, totalUsers: 0, totalPages: 0 }; // Không tìm thấy skill nào khớp
+      }
+      findConditions.skills = { $in: skillIds }; // Lọc user có skills trong danh sách
+    }
+
+    // Lấy danh sách các users đã kết nối
+    const sentConnections = await Connection.find({
+      senderId: currentUserId,
+      status: "accepted",
+    }).distinct("receiverId");
+
+    const receivedConnections = await Connection.find({
+      receiverId: currentUserId,
+      status: "accepted",
+    }).distinct("senderId");
+
+    // Kết hợp hai mảng và loại bỏ trùng lặp
+    const connectedUserIds = [
+      ...new Set([...sentConnections, ...receivedConnections]),
+    ];
+    //Kiểm tra lại user id
+    const validConnections = connectedUserIds.filter(
+      (id) => id.toString() !== currentUserId
+    );
+
+    // Lọc userIds trong list
+    findConditions._id = { $in: validConnections };
+
+    const features = new APIFeatures(
+      User.find(findConditions)
+        .populate("skills")
+        .select(["-password", "-role", "-active"]),
+      query
+    )
+      .filter()
+      .sort()
+      .paginate();
+
+    const users = await features.query;
     const totalUsers = await User.countDocuments(features.mongoQuery);
     const totalPages = Math.ceil(totalUsers / features.limit);
 
@@ -255,9 +348,9 @@ exports.forgotPassword = async (email, protocol, host) => {
     await user.save({ validateBeforeSave: false });
 
     // 3) Gửi nó đến email của user
-    const resetURL = `${protocol}://${host}/api/users/reset-password/${resetToken}`;
+    const resetURL = `${protocol}://${host}/reset-password/${resetToken}`;
 
-    const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
+    const message = `Bạn quên mật khẩu rồi sao? Vui lòng click vào link bên dưới để tạo mật khẩu mới: ${resetURL}.\nNếu như không phải do bạn yêu cầu, vui lòng bỏ qua email này!`;
 
     try {
       await sendEmail({
@@ -291,7 +384,10 @@ exports.resetPassword = async (token, password) => {
 
     // 2) Nếu token chưa hết hạn và có user, đặt lại password
     if (!user) {
-      throw new AppError("Token is invalid or has expired", 400);
+      throw new AppError(
+        "Link đã hết hạn, vui lòng gửi lại yêu cầu khác!",
+        400
+      );
     }
     user.password = password;
     user.passwordResetToken = undefined;
@@ -351,7 +447,7 @@ exports.changePassword = async (id, pass, currentToken) => {
 
     // 2) Check if posted current password is correct
     if (!(await user.comparePassword(pass.passwordCurrent, user.password))) {
-      throw new AppError("Wrong password", 401);
+      throw new AppError("Mật khẩu hiện tại sai, vui lòng nhập lại", 401);
     }
 
     // 3) If so, update password
@@ -387,14 +483,12 @@ exports.addSkillToUser = async (userId, skillData) => {
       } else if (typeof skillItem === "string") {
         skillName = skillItem;
       } else {
-        // logger.warn(`Skipping invalid skill: ${skillItem}`);
         continue;
       }
 
       // Kiểm tra xem skillName có phải là _id không
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(skillName);
       if (isObjectId) {
-        // logger.warn(`Skipping ObjectId as skill name: ${skillName}`);
         continue;
       }
 
@@ -407,22 +501,8 @@ exports.addSkillToUser = async (userId, skillData) => {
     }
 
     // 2) So sánh với danh sách hiện tại và cập nhật
-    // Nếu skillIds không chứa một số _id hiện có trong user.skills, chúng sẽ bị xóa
     user.skills = skillIds; // Thay thế hoàn toàn danh sách cũ bằng danh sách mới
     await user.save();
-
-    // 3) (Tùy chọn) Xóa các skill không còn được sử dụng khỏi collection Skill
-    // const allUsers = await User.find({ skills: { $exists: true } });
-    // const usedSkillIds = new Set(allUsers.flatMap((u) => u.skills));
-    // const unusedSkills = await Skill.find({
-    //   _id: { $nin: Array.from(usedSkillIds) },
-    // });
-    // if (unusedSkills.length > 0) {
-    //   await Skill.deleteMany({ _id: { $in: unusedSkills.map((s) => s._id) } });
-    //   logger.info(
-    //     `Deleted unused skills: ${unusedSkills.map((s) => s.name).join(", ")}`
-    //   );
-    // }
 
     // 4) Trả về user đã cập nhật với skills được populate
     const updatedUser = await User.findById(userId)

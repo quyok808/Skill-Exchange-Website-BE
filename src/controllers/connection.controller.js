@@ -6,7 +6,7 @@ const AppError = require("../utils/appError");
 
 //Gửi yêu cầu kết nối
 exports.sendRequest = catchAsync(async (req, res) => {
-  const { receiverId, skill } = req.body;
+  const { receiverId } = req.body;
   const senderId = req.user.id;
 
   if (senderId === receiverId) {
@@ -31,7 +31,6 @@ exports.sendRequest = catchAsync(async (req, res) => {
   const newConnection = new Connection({
     senderId,
     receiverId,
-    skill,
     status: "pending",
   });
   await newConnection.save();
@@ -167,6 +166,23 @@ exports.getPendingrequests = catchAsync(async (req, res) => {
     $and: [
       { $or: [{ receiverId: req.user.id }, { senderId: req.user.id }] },
       { status: "pending" },
+    ],
+  })
+    .populate("senderId", "name email")
+    .populate("receiverId", "name email");
+  res.status(200).json({
+    status: "success",
+    data: {
+      pendingRequests,
+    },
+  });
+});
+
+exports.getAcceptedRequests = catchAsync(async (req, res) => {
+  const pendingRequests = await Connection.find({
+    $and: [
+      { $or: [{ receiverId: req.user.id }, { senderId: req.user.id }] },
+      { status: "accepted" },
     ],
   })
     .populate("senderId", "name email")

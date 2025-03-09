@@ -15,17 +15,17 @@ exports.validateRegister = [
 
   body("password")
     .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters long")
+    .withMessage("Mật khẩu phải chứa ít nhất 8 kí tự")
     .matches(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/
     )
     .withMessage(
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+      "Mật khẩu phải chứa ít nhất 1 kí tự in hoa, 1 kí tự in thường, 1 số và 1 kí tự đặc biệt"
     ),
 
   body("confirmPassword").custom((value, { req }) => {
     if (value !== req.body.password) {
-      throw new Error("Password confirmation does not match password");
+      throw new Error("Mật khẩu và xác nhận mật khẩu không trùng khớp");
     }
     return true;
   }),
@@ -36,17 +36,17 @@ exports.validateRegister = [
 exports.validateResetPassword = [
   body("password")
     .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters long")
+    .withMessage("Mật khẩu phải chứa ít nhất 8 kí tự")
     .matches(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).*$/
     )
     .withMessage(
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+      "Mật khẩu phải chứa ít nhất 1 kí tự in hoa, 1 kí tự in thường, 1 số và 1 kí tự đặc biệt"
     ),
 
   body("confirmPassword").custom((value, { req }) => {
     if (value !== req.body.password) {
-      throw new Error("Password confirmation does not match password");
+      throw new Error("Mật khẩu và xác nhận mật khẩu không trùng khớp");
     }
     return true;
   }),

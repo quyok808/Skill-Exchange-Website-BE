@@ -56,7 +56,7 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
 // Lấy tất cả users (dành cho user - search user)
 exports.searchUser = catchAsync(async (req, res, next) => {
   const { users, features, totalPages, totalUsers } =
-    await userService.searchUser(req.query);
+    await userService.searchUser(req.query, req.user.id);
 
   res.status(200).json({
     status: "success",
@@ -67,6 +67,17 @@ exports.searchUser = catchAsync(async (req, res, next) => {
       limit: features.limit,
       totalPages,
       totalUsers,
+    },
+  });
+});
+
+exports.getRelatedUserIds = catchAsync(async (req, res, next) => {
+  const userIds = await userService.getRelatedUserIds(req.user.id);
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      userIds,
     },
   });
 });
@@ -139,11 +150,7 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
 
 // Quên mật khẩu
 exports.forgotPassword = catchAsync(async (req, res, next) => {
-  await userService.forgotPassword(
-    req.body.email,
-    req.protocol,
-    req.get("host")
-  );
+  await userService.forgotPassword(req.body.email, "http", "localhost:5173");
   res.status(200).json({
     status: "success",
     message: "Token sent to email!",
@@ -206,7 +213,7 @@ exports.changePassword = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    message: "Password has been changed!",
+    message: "Mật khẩu đã được thay đổi thành công!",
   });
 });
 
