@@ -3,6 +3,8 @@ const cron = require("node-cron");
 const Connection = require("../models/connections.model");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const userModel = require("../models/user.model");
+const APIFeatures = require("../utils/apiFeatures");
 
 //Gửi yêu cầu kết nối
 exports.sendRequest = catchAsync(async (req, res) => {
@@ -151,8 +153,8 @@ exports.getAllrequests = catchAsync(async (req, res) => {
   const pendingRequests = await Connection.find({
     $or: [{ receiverId: req.user.id }, { senderId: req.user.id }],
   })
-    .populate("senderId", "name email")
-    .populate("receiverId", "name email");
+    .populate("senderId", "name email skills address phone")
+    .populate("receiverId", "name email skills address phone");
   res.status(200).json({
     status: "success",
     data: {
@@ -191,6 +193,55 @@ exports.getAcceptedRequests = catchAsync(async (req, res) => {
     status: "success",
     data: {
       pendingRequests,
+    },
+  });
+});
+
+exports.getUsersInNetwork = catchAsync(async (req, res) => {
+  let findConditions = {};
+  const currentUserId = req.user.id;
+  // Nếu có skillName, tìm các skill khớp trước
+  if (query.skillName) {
+    const skillIds = await Skill.find({
+      name: { $regex: query.skillName, $options: "i" },
+    }).distinct("_id"); // Lấy danh sách ObjectId của skills khớp
+    if (skillIds.length == 0) {
+      throw new AppError("Không có thông tin kỹ năng", 404);
+    }
+    if (skillIds.length > 0) {
+      findConditions.skills = { $in: skillIds }; // Lọc user có skills trong danh sách
+    } else {
+      return { users: [], features: null, totalUsers: 0, totalPages: 0 }; // Không tìm thấy skill nào khớp
+    }
+  }
+
+  // Loại trừ user đang đăng nhập
+  if (currentUserId) {
+    findConditions._id = { $ne: currentUserId }; // Thêm điều kiện để loại trừ user hiện tại
+  }
+
+  const features = new APIFeatures(
+    userModel.find().populate("skills"),
+    req.query
+  )
+    .filter()
+    .sort()
+    .paginate();
+
+  const users = await features.query;
+
+  // const totalUsers = await User.countDocuments();
+  const totalUsers = await userModel.countDocuments(features.mongoQuery); // Đếm số lượng user sau khi filter
+  const totalPages = Math.ceil(totalUsers / features.limit);
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    data: {
+      users,
+      page: features.page,
+      limit: features.limit,
+      totalPages,
+      totalUsers,
     },
   });
 });

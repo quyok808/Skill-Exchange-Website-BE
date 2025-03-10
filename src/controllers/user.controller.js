@@ -71,6 +71,23 @@ exports.searchUser = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.searchUserInNetwork = catchAsync(async (req, res, next) => {
+  const { users, features, totalPages, totalUsers } =
+    await userService.searchUserInNetwork(req.query, req.user.id);
+
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    data: {
+      users,
+      page: features.page,
+      limit: features.limit,
+      totalPages,
+      totalUsers,
+    },
+  });
+});
+
 exports.getRelatedUserIds = catchAsync(async (req, res, next) => {
   const userIds = await userService.getRelatedUserIds(req.user.id);
 
@@ -142,10 +159,7 @@ exports.sendVerificationEmail = catchAsync(async (req, res, next) => {
 exports.verifyEmail = catchAsync(async (req, res, next) => {
   await userService.verifyEmail(req.params.token);
 
-  res.status(200).json({
-    status: "success",
-    message: "Email verified successfully!",
-  });
+  res.redirect(301, "http://localhost:5173");
 });
 
 // Quên mật khẩu

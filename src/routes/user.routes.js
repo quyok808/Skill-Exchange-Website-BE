@@ -36,6 +36,7 @@ router.put(
 router.get("/me", userController.getMe);
 router.put("/update-profile", userController.updateMe);
 router.get("/search-user", userController.searchUser);
+router.get("/search-user-in-network", userController.searchUserInNetwork);
 router.put("/add-skill", userController.addSkillToUser);
 router.get("/profile/image", userController.getImage); // Route để lấy ảnh avatar
 router.get("/profile/image/:id", userController.getImageById);

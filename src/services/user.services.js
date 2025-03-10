@@ -26,7 +26,13 @@ exports.register = async (userData) => {
 
     return { user: newUser, token }; // Trả về cả user và token
   } catch (error) {
-    throw error; // Chuyển lỗi cho controller
+    if (error.code === 11000) {
+      // // Lỗi duplicate key
+      // const duplicateField = Object.keys(error.keyValue)[0];
+      throw new AppError("Email đã tồn tại. Vui lòng chọn giá trị khác.", 409);
+    } else {
+      throw error; // Chuyển lỗi khác cho controller
+    }
   }
 };
 
@@ -463,7 +469,7 @@ exports.changePassword = async (id, pass, currentToken) => {
 
 exports.addSkillToUser = async (userId, skillData) => {
   try {
-    const skillList = skillData.skills; // Ví dụ: ["Lalala", "Hát"]
+    const skillList = skillData.skills;
     if (!Array.isArray(skillList)) {
       throw new AppError("skillData.skills must be an array", 400);
     }
@@ -493,7 +499,9 @@ exports.addSkillToUser = async (userId, skillData) => {
       }
 
       // Tìm hoặc tạo skill
-      let skill = await Skill.findOne({ name: skillName });
+      let skill = await Skill.findOne({
+        name: { $regex: new RegExp(skillName, "i") },
+      });
       if (!skill) {
         skill = await Skill.create({ name: skillName });
       }
