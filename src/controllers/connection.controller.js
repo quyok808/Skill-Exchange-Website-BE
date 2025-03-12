@@ -8,55 +8,61 @@ const APIFeatures = require("../utils/apiFeatures");
 
 //Gửi yêu cầu kết nối
 exports.sendRequest = catchAsync(async (req, res) => {
+  const io = req.app.get("io");
   const { receiverId } = req.body;
   const senderId = req.user.id;
 
   if (senderId === receiverId) {
-    return new AppError("Không thể kết nối với chính mình!", 400);
+    return res.status(400).json({ message: "Không thể kết nối với chính mình!" });
   }
 
-  const existingRequest = await Connection.findOne({
+  // Kiểm tra đã có kết nối chưa
+  const existingConnection = await Connection.findOne({
     $or: [
       { senderId, receiverId },
       { senderId: receiverId, receiverId: senderId },
     ],
   });
 
-  if (existingRequest && existingRequest.status === "pending") {
-    return new AppError("Bạn đã có kết nối!", 400);
+  if (existingConnection) {
+    return res.status(400).json({ message: "Kết nối đã tồn tại!" });
   }
 
-  if (existingRequest && existingRequest.status === "rejected") {
-    await Connection.findByIdAndDelete(existingRequest._id); // Xóa yêu cầu cũ
-  }
+  const newConnection = await Connection.create({ senderId, receiverId, status: "pending" });
 
-  const newConnection = new Connection({
+  io.to(connection.senderId.toString()).emit("newConnectionRequest", {
     senderId,
     receiverId,
+    connectionId: newConnection._id,
     status: "pending",
   });
-  await newConnection.save();
+
   res.status(201).json({
     status: "success",
-    data: {
-      newConnection,
-    },
+    data: newConnection,
   });
 });
 
 //chấp nhận yêu cầu
 exports.acceptRequest = catchAsync(async (req, res) => {
-  const connection = await Connection.findById(req.params.id);
+  const io = req.app.get("io");
+  const { id } = req.params; // ID của connection
+  const currentUserId = req.user.id;
+
+  // Tìm yêu cầu kết nối theo ID
+  const connection = await Connection.findById(id);
   if (!connection) {
-    return new AppError("Không tìm thấy yêu cầu!", 404);
+    return res.status(404).json({ message: "Không tìm thấy yêu cầu kết nối!" });
   }
 
-  if (connection.receiverId.toString() !== req.user.id) {
-    return new AppError("Không có quyền xử lý yêu cầu này!", 403);
+  // Kiểm tra quyền xử lý
+  if (connection.receiverId.toString() !== currentUserId) {
+    return res.status(403).json({ message: "Bạn không có quyền xử lý yêu cầu này!" });
   }
 
+  // Kiểm tra xem đã chấp nhận chưa
   if (connection.status === "accepted") {
-    return new AppError("Kết nối này đã được chấp nhận trước đó!", 400);
+    return res.status(400).json({ message: "Kết nối này đã được chấp nhận!" });
   }
 
   // Tạo phòng chat
@@ -65,17 +71,21 @@ exports.acceptRequest = catchAsync(async (req, res) => {
   });
   await chatRoom.save();
 
-  // Cập nhật Connection với chatRoomId
+  // Cập nhật Connection với trạng thái "accepted" và lưu chatRoomId
   connection.status = "accepted";
   connection.chatRoomId = chatRoom._id;
   await connection.save();
 
-  const chat = await chatRoom.populate("participants", "_id name email");
+  io.to(connection.senderId.toString()).emit("requestAccepted", {
+    senderId: connection.senderId,
+    receiverId: connection.receiverId,
+    chatRoomId: chatRoom._id,
+    status: "accepted",
+  });
+
   res.status(200).json({
     status: "success",
-    data: {
-      chat,
-    },
+    message: "Kết nối đã được chấp nhận!",
   });
 });
 
@@ -108,28 +118,33 @@ exports.disconnect = catchAsync(async (req, res) => {
 });
 
 //từ chối yêu cầu
-exports.rejectRequest = async (req, res) => {
-  const connection = await Connection.findById(req.params.id);
+exports.rejectRequest = catchAsync(async (req, res) => {
+  const io = req.app.get("io");
+  const { id } = req.params;
+  const currentUserId = req.user.id;
+
+  const connection = await Connection.findById(id);
   if (!connection) {
-    return new AppError("Không tìm thấy yêu cầu kết nối!", 404);
+    return res.status(404).json({ message: "Không tìm thấy yêu cầu kết nối!" });
   }
 
-  if (connection.receiverId.toString() !== req.user.id) {
-    return new AppError("Không có quyền xử lý yêu cầu này!", 403);
+  if (connection.receiverId.toString() !== currentUserId) {
+    return res.status(403).json({ message: "Bạn không có quyền xử lý yêu cầu này!" });
   }
 
-  connection.status = "rejected";
-  connection.rejectedAt = new Date();
-  await connection.save();
+  await Connection.findByIdAndDelete(id);
+
+  io.to(connection.senderId.toString()).emit("requestRejected", {
+    senderId: connection.senderId,
+    receiverId: connection.receiverId,
+    status: "none",
+  });
 
   res.status(200).json({
     status: "success",
-    data: {
-      message: "Yêu cầu kết nối bị từ chối! Sẽ tự động xóa sau 24h.",
-      connection,
-    },
+    message: "Yêu cầu kết nối đã bị từ chối!",
   });
-};
+});
 
 //Kiểm tra và xóa yêu cầu từ chối quá 24h...
 cron.schedule(
@@ -243,5 +258,50 @@ exports.getUsersInNetwork = catchAsync(async (req, res) => {
       totalPages,
       totalUsers,
     },
+  });
+});
+
+
+// Kiểm tra trạng thái kết nối
+exports.getConnectionStatus = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const currentUserId = req.user.id;
+
+  const connection = await Connection.findOne({
+    $or: [
+      { senderId: currentUserId, receiverId: userId },
+      { senderId: userId, receiverId: currentUserId },
+    ],
+  });
+
+  if (!connection) {
+    return res.status(200).json({ status: "none" });
+  }
+
+  return res.status(200).json({
+    connectionId: connection._id,
+    status: connection.status,
+    received: connection.receiverId.toString() === currentUserId, // Xác định user có nhận request không
+  });
+});
+
+// Hủy yêu cầu kết nối
+exports.cancelRequest = catchAsync(async (req, res) => {
+  const { receiverId } = req.params;
+  const senderId = req.user.id;
+
+  const connection = await Connection.findOneAndDelete({
+    senderId,
+    receiverId,
+    status: "pending",
+  });
+
+  if (!connection) {
+    return res.status(404).json({ message: "Không tìm thấy yêu cầu kết nối đang chờ!" });
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: "Đã hủy yêu cầu kết nối!",
   });
 });
