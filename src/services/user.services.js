@@ -12,7 +12,7 @@ const path = require("path");
 // Hàm tạo JWT token
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
+    expiresIn: process.env.JWT_EXPIRES_IN
   });
 };
 
@@ -36,23 +36,36 @@ exports.register = async (userData) => {
   }
 };
 
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
 exports.login = async (loginInfo) => {
   try {
     const { email, password } = loginInfo;
     // 1) Kiểm tra xem email và password có tồn tại không
     if (!email || !password) {
-      throw new AppError("Please provide email and password!", 400);
+      throw new AppError(
+        "Thông tin email hoặc password chưa được điền đầy đủ!",
+        400
+      );
     }
+
+    if (!isValidEmail(email)) {
+      throw new AppError("Định dạng email phải là example@gmail.com", 401);
+    }
+
     // 2) Kiểm tra xem user có tồn tại và password có đúng không
     const user = await User.findOne({ email }).select("+password");
 
     if (!user || !(await user.comparePassword(password, user.password))) {
-      throw new AppError("Incorrect email or password", 401);
+      throw new AppError("Email hoặc mật khẩu không đúng", 401);
     }
 
     if (!user.active) {
       // Kiểm tra trạng thái active
-      throw new AppError("Please verify your email before logging in.", 403);
+      throw new AppError("Vui lòng xác nhận email trước khi đăng nhập.", 403);
     }
 
     // 3) Nếu mọi thứ OK, gửi token đến client
@@ -89,7 +102,7 @@ exports.searchUser = async (query, currentUserId) => {
     // Nếu có skillName, tìm các skill khớp trước
     if (query.skillName) {
       const skillIds = await Skill.find({
-        name: { $regex: query.skillName, $options: "i" },
+        name: { $regex: query.skillName, $options: "i" }
       }).distinct("_id"); // Lấy danh sách ObjectId của skills khớp
       if (skillIds.length == 0) {
         throw new AppError("Không có thông tin kỹ năng", 404);
@@ -131,7 +144,7 @@ exports.getRelatedUserIds = async (currentUserId) => {
   try {
     // Tìm tất cả các connections mà currentUserId là sender hoặc receiver
     const connections = await Connection.find({
-      $or: [{ senderId: currentUserId }, { receiverId: currentUserId }],
+      $or: [{ senderId: currentUserId }, { receiverId: currentUserId }]
     }).select("senderId receiverId"); // Chỉ lấy các trường senderId và receiverId
 
     // Tạo mảng để lưu các userId liên quan
@@ -163,7 +176,7 @@ exports.searchUserInNetwork = async (query, currentUserId) => {
     // Nếu có skillName, tìm các skill khớp trước
     if (query.skillName) {
       const skillIds = await Skill.find({
-        name: { $regex: query.skillName, $options: "i" },
+        name: { $regex: query.skillName, $options: "i" }
       }).distinct("_id"); // Lấy danh sách ObjectId của skills khớp
       if (skillIds.length === 0) {
         return { users: [], features: null, totalUsers: 0, totalPages: 0 }; // Không tìm thấy skill nào khớp
@@ -174,17 +187,17 @@ exports.searchUserInNetwork = async (query, currentUserId) => {
     // Lấy danh sách các users đã kết nối
     const sentConnections = await Connection.find({
       senderId: currentUserId,
-      status: "accepted",
+      status: "accepted"
     }).distinct("receiverId");
 
     const receivedConnections = await Connection.find({
       receiverId: currentUserId,
-      status: "accepted",
+      status: "accepted"
     }).distinct("senderId");
 
     // Kết hợp hai mảng và loại bỏ trùng lặp
     const connectedUserIds = [
-      ...new Set([...sentConnections, ...receivedConnections]),
+      ...new Set([...sentConnections, ...receivedConnections])
     ];
     //Kiểm tra lại user id
     const validConnections = connectedUserIds.filter(
@@ -231,7 +244,7 @@ exports.put = async (id, updateUserData) => {
   try {
     const user = await User.findByIdAndUpdate(id, updateUserData, {
       new: true, // Trả về user đã được cập nhật
-      runValidators: true, // Chạy các validators trong schema
+      runValidators: true // Chạy các validators trong schema
     });
 
     if (!user) {
@@ -262,7 +275,7 @@ exports.uploadAvatar = async (id, filename) => {
       { photo: filename },
       {
         new: true,
-        runValidators: true,
+        runValidators: true
       }
     ).populate("skills");
     if (!user) {
@@ -301,7 +314,7 @@ exports.sendVerificationEmail = async (userId, protocol, host) => {
       await sendEmail({
         email: user.email,
         subject: "Your email verification token (valid for 24 hours)",
-        message,
+        message
       });
     } catch (error) {
       user.emailVerificationToken = undefined;
@@ -323,7 +336,7 @@ exports.verifyEmail = async (token) => {
 
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
-    emailVerificationExpires: { $gt: Date.now() },
+    emailVerificationExpires: { $gt: Date.now() }
   });
 
   if (!user) {
@@ -362,7 +375,7 @@ exports.forgotPassword = async (email, protocol, host) => {
       await sendEmail({
         email: user.email,
         subject: "Your password reset token (valid for 10 min)",
-        message: message,
+        message: message
       });
     } catch (err) {
       user.passwordResetToken = undefined;
@@ -385,7 +398,7 @@ exports.resetPassword = async (token, password) => {
 
     const user = await User.findOne({
       passwordResetToken: hashedToken,
-      passwordResetExpires: { $gt: Date.now() },
+      passwordResetExpires: { $gt: Date.now() }
     });
 
     // 2) Nếu token chưa hết hạn và có user, đặt lại password
@@ -434,7 +447,7 @@ exports.updateMe = async (id, updateUserData) => {
   try {
     const user = await User.findByIdAndUpdate(id, updateUserData, {
       new: true, // Trả về user đã được cập nhật
-      runValidators: true, // Chạy các validators trong schema
+      runValidators: true // Chạy các validators trong schema
     }).populate("skills");
 
     if (!user) {
@@ -500,7 +513,7 @@ exports.addSkillToUser = async (userId, skillData) => {
 
       // Tìm hoặc tạo skill
       let skill = await Skill.findOne({
-        name: { $regex: new RegExp(skillName, "i") },
+        name: { $regex: new RegExp(skillName, "i") }
       });
       if (!skill) {
         skill = await Skill.create({ name: skillName });
