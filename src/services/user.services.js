@@ -195,9 +195,25 @@ exports.searchUserInNetwork = async (query, currentUserId) => {
       status: "accepted"
     }).distinct("senderId");
 
+    // Lấy danh sách các users đã kết nối
+    const sentConnectionsPending = await Connection.find({
+      senderId: currentUserId,
+      status: "pending"
+    }).distinct("receiverId");
+
+    const receivedConnectionsPending = await Connection.find({
+      receiverId: currentUserId,
+      status: "pending"
+    }).distinct("senderId");
+
     // Kết hợp hai mảng và loại bỏ trùng lặp
     const connectedUserIds = [
-      ...new Set([...sentConnections, ...receivedConnections])
+      ...new Set([
+        ...sentConnections,
+        ...receivedConnections,
+        ...sentConnectionsPending,
+        ...receivedConnectionsPending
+      ])
     ];
     //Kiểm tra lại user id
     const validConnections = connectedUserIds.filter(

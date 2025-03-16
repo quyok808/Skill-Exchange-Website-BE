@@ -37,11 +37,12 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
         $and: [
           { startTime: { $lt: end } },
           { endTime: { $gt: start } },
+          { $or: [{ status: "accepted" }, { status: "pending" }] },
           { $or: [{ senderId: senderId }, { receiverId: senderId }] }, // Either sender or receiver is the current user
-          { $or: [{ senderId: receiverId }, { receiverId: receiverId }] }, // Either sender or receiver is the other user
-        ],
-      },
-    ],
+          { $or: [{ senderId: receiverId }, { receiverId: receiverId }] } // Either sender or receiver is the other user
+        ]
+      }
+    ]
   });
 
   if (overlappingAppointment) {
@@ -58,14 +59,14 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
     receiverId,
     startTime: start, // Store as Date objects
     endTime: end, // Store as Date objects
-    description,
+    description
   });
 
   res.status(201).json({
     status: "success",
     data: {
-      appointment: newAppointment,
-    },
+      appointment: newAppointment
+    }
   });
 });
 
@@ -80,8 +81,8 @@ exports.getAppointment = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      appointment,
-    },
+      appointment
+    }
   });
 });
 
@@ -92,7 +93,7 @@ exports.updateAppointment = catchAsync(async (req, res, next) => {
     req.body,
     {
       new: true,
-      runValidators: true,
+      runValidators: true
     }
   );
 
@@ -103,8 +104,8 @@ exports.updateAppointment = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      appointment,
-    },
+      appointment
+    }
   });
 });
 
@@ -118,21 +119,21 @@ exports.deleteAppointment = catchAsync(async (req, res, next) => {
 
   res.status(204).json({
     status: "success",
-    data: null,
+    data: null
   });
 });
 
 // Lấy danh sách lịch hẹn cho người dùng hiện tại
 exports.getMyAppointments = catchAsync(async (req, res, next) => {
   const appointments = await Appointment.find({
-    $or: [{ senderId: req.user.id }, { receiverId: req.user.id }],
+    $or: [{ senderId: req.user.id }, { receiverId: req.user.id }]
   });
 
   res.status(200).json({
     status: "success",
     data: {
-      appointments,
-    },
+      appointments
+    }
   });
 });
 
@@ -173,8 +174,8 @@ exports.updateAppointmentStatus = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      appointment,
-    },
+      appointment
+    }
   });
 });
 
@@ -185,7 +186,7 @@ cron.schedule("0 * * * *", async () => {
 
   const appointments = await Appointment.find({
     startTime: { $gte: now, $lte: reminderTime },
-    status: "pending", // Chỉ gửi nhắc nhở cho các lịch hẹn chưa được chấp nhận/từ chối
+    status: "pending" // Chỉ gửi nhắc nhở cho các lịch hẹn chưa được chấp nhận/từ chối
   }).populate("senderId receiverId", "name email");
 
   appointments.forEach(async (appointment) => {
@@ -193,14 +194,14 @@ cron.schedule("0 * * * *", async () => {
       await sendEmail({
         email: appointment.senderId.email,
         subject: "Reminder: Your upcoming appointment",
-        message: `Your appointment with ${appointment.receiverId.name} is scheduled for ${appointment.startTime}.`,
+        message: `Your appointment with ${appointment.receiverId.name} is scheduled for ${appointment.startTime}.`
       });
 
       await sendEmail({
         email: appointment.receiverId.email,
         subject:
           "Reminder: Upcoming appointment with ${appointment.senderId.name}",
-        message: `You have an appointment with ${appointment.senderId.name} scheduled for ${appointment.startTime}.`,
+        message: `You have an appointment with ${appointment.senderId.name} scheduled for ${appointment.startTime}.`
       });
       appointment.status = "reminded";
       await appointment.save();
