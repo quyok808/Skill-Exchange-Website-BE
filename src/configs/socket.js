@@ -82,7 +82,7 @@ function initializeSocket(server) {
           if (socketIds.size === 0) {
             onlineUsers.delete(userId);
             //console.log(`User ${userId} offline`);
-            //io.emit("onlineStatusUpdate", { userId, status: "offline" });
+            io.emit("onlineStatusUpdate", { userId, status: "offline" });
           }
         }
       }
