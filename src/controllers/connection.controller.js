@@ -65,12 +65,15 @@ exports.acceptRequest = catchAsync(async (req, res) => {
   connection.chatRoomId = chatRoom._id;
   await connection.save();
 
+  const chat = await chatRoom.populate("participants", "_id name email");
+
   res.status(200).json({
     status: "success",
     data: {
       connectionId: connection._id,
       senderId: connection.senderId, // Gửi về senderId để React cập nhật UI
       receiverId: connection.receiverId,
+      chat,
       chatRoomId: chatRoom._id,
       status: "accepted",
     },

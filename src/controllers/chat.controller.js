@@ -1,4 +1,5 @@
 const ChatRoom = require("../models/chat.model");
+const Message = require("../models/message.model");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 
@@ -12,51 +13,57 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
     return next(new AppError("Phòng chat không tồn tại!", 404));
   }
 
-  const newMessage = { sender: senderId, content, createdAt: new Date() };
-  chatRoom.messages.push(newMessage);
-  await chatRoom.save();
+  // Tạo tin nhắn mới
+  const newMessage = await Message.create({
+    chatRoom: chatRoomId,
+    sender: senderId,
+    content,
+  });
+
+  // **Quan trọng: Populate sender trước khi gửi qua Socket.IO**
+  const populatedMessage = await Message.findById(newMessage._id).populate(
+    "sender",
+    "name email"
+  );
 
   // Gửi tin nhắn real-time qua Socket.IO
   const io = req.app.get("io"); // Lấy instance của Socket.IO từ `server.js`
-  io.to(chatRoomId).emit("receiveMessage", newMessage);
+  io.to(chatRoomId).emit("receiveMessage", populatedMessage); // Gửi populatedMessage
 
   res.status(201).json({
     status: "success",
-    data: { message: newMessage },
+    data: { message: populatedMessage }, // Gửi populatedMessage trong response
   });
 });
 
 // Lấy danh sách tin nhắn trong một phòng chat
-// exports.getMessages = catchAsync(async (req, res, next) => {
-//   const { chatRoomId } = req.params;
-//   const chatRoom = await ChatRoom.findById(chatRoomId).populate("messages.sender", "name email");
-
-//   if (!chatRoom) {
-//     return next(new AppError("Phòng chat không tồn tại!", 404));
-//   }
-
-//   res.status(200).json({
-//     status: "success",
-//     data: { messages: chatRoom.messages },
-//   });
-// });
-
 exports.getMessages = catchAsync(async (req, res, next) => {
   const { chatRoomId } = req.params;
 
-  console.log("🔍 Debug: chatRoomId từ request:", chatRoomId); // ✅ Debug ID
-
-  const chatRoom = await ChatRoom.findById(chatRoomId).populate("messages.sender", "name email");
-
+  const chatRoom = await ChatRoom.findById(chatRoomId);
   if (!chatRoom) {
-    console.log("🚨 Không tìm thấy phòng chat!");
     return next(new AppError("Phòng chat không tồn tại!", 404));
   }
 
-  console.log("✅ Đã tìm thấy phòng chat:", chatRoom);
+  const messages = await Message.find({ chatRoom: chatRoomId })
+    .populate("sender", "name email")
+    .sort({ createdAt: -1 })
+    .limit(50);
 
   res.status(200).json({
     status: "success",
-    data: { messages: chatRoom.messages },
+    data: { messages },
+  });
+});
+
+exports.getChatRoom = catchAsync(async (req, res, next) => {
+  const { chatRoomId } = req.params;
+  const chatRoom = await ChatRoom.findById(chatRoomId);
+  if (!chatRoom) {
+    return next(new AppError("Phòng chat không tồn tại!", 404));
+  }
+  res.status(200).json({
+    status: "success",
+    data: { chatRoom },
   });
 });
