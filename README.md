@@ -13,3 +13,5 @@
 - mongoose
 - nodemailer
 - multer
+- winston
+- express-validator

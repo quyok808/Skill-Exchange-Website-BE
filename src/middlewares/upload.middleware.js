@@ -4,7 +4,7 @@ const AppError = require("../utils/appError");
 // Cấu hình lưu trữ
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "src/uploads/avatar/"); // Thư mục lưu trữ hình ảnh
+    cb(null, "src/uploads/avatars/"); // Thư mục lưu trữ hình ảnh
   },
   filename: (req, file, cb) => {
     const ext = file.mimetype.split("/")[1]; // Lấy extension của file
