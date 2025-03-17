@@ -1,6 +1,8 @@
+const mediator = require("../mediator");
 const Appointment = require("../models/appointment.model");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const CreateAppointmentRequest = require("../handlers/createAppointment/createAppointmentRequest");
 const cron = require("node-cron");
 
 // Tạo lịch hẹn mới
@@ -8,60 +10,33 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
   const { receiverId, startTime, endTime, description } = req.body;
   const senderId = req.user.id;
 
-  // Validate inputs (Moved to the top for clarity)
-  if (!receiverId || !startTime || !endTime || !description) {
-    return next(new AppError("Please provide all required fields", 400));
-  }
-
-  if (senderId === receiverId) {
-    return next(
-      new AppError("Cannot schedule an appointment with yourself", 400)
-    );
-  }
-
-  //Kiểm tra xem thời gian hẹn có hợp lệ không
-  if (startTime >= endTime) {
-    return next(
-      new AppError("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc", 400)
-    );
-  }
-
-  // Convert startTime and endTime to Date objects for accurate comparison
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-
-  //Check for overlapping appointments
-  const overlappingAppointment = await Appointment.findOne({
-    $or: [
-      {
-        $and: [
-          { startTime: { $lt: end } },
-          { endTime: { $gt: start } },
-          { $or: [{ status: "accepted" }, { status: "pending" }] },
-          { $or: [{ senderId: senderId }, { receiverId: senderId }] }, // Either sender or receiver is the current user
-          { $or: [{ senderId: receiverId }, { receiverId: receiverId }] } // Either sender or receiver is the other user
-        ]
-      }
-    ]
-  });
-
-  if (overlappingAppointment) {
-    return next(
-      new AppError(
-        "This time slot is already booked. Please choose a different time.",
-        409
-      )
-    ); //409 Conflict
-  }
-
-  const newAppointment = await Appointment.create({
+  const createAppointmentRequest = new CreateAppointmentRequest(
     senderId,
     receiverId,
-    startTime: start, // Store as Date objects
-    endTime: end, // Store as Date objects
+    startTime,
+    endTime,
     description
+  );
+
+  // "Unpackage" dữ liệu từ request object và truyền vào emit
+  mediator.emit("createAppointment", {
+    senderId: createAppointmentRequest.senderId,
+    receiverId: createAppointmentRequest.receiverId,
+    startTime: createAppointmentRequest.startTime,
+    endTime: createAppointmentRequest.endTime,
+    description: createAppointmentRequest.description
   });
 
+  const createAppointmentPromise = new Promise((resolve, reject) => {
+    mediator.once("createAppointmentResult", (result) => {
+      resolve(result);
+    });
+    mediator.once("createAppointmentError", (error) => {
+      reject(error);
+    });
+  });
+
+  const newAppointment = await createAppointmentPromise;
   res.status(201).json({
     status: "success",
     data: {
