@@ -1,8 +1,7 @@
-const Mediator = require("mediator-js");
+var Mediator = require("mediator-js").Mediator,
+  mediator = new Mediator();
 
 const createAppointmentHandler = require("./handlers/createAppointment/createAppointmentHandler");
-
-const mediator = new Mediator();
 
 mediator.on("createAppointment", async (message) => {
   try {

@@ -1,4 +1,5 @@
 const Appointment = require("../../models/appointment.model");
+const AppError = require("../../utils/appError");
 
 const CreateAppointmentHandler = async (message) => {
   try {
@@ -54,21 +55,20 @@ const CreateAppointmentHandler = async (message) => {
     });
 
     if (overlappingAppointment) {
-      return next(
-        new AppError(
-          "Thời gian này tớ đang bận, vui lòng chọn thời gian khác nhé!",
-          409
-        )
+      throw new AppError(
+        "Thời gian này tớ đang bận, vui lòng chọn thời gian khác nhé!",
+        409
       );
     }
 
-    const newAppointment = await Appointment.create(
-      message.senderId,
-      message.receiverId,
-      (message.startTime = start), // Store as Date objects
-      (message.endTime = end), // Store as Date objects
-      message.description
-    );
+    const newAppointment = await Appointment.create({
+      senderId: message.senderId,
+      receiverId: message.receiverId,
+      startTime: start, // Sử dụng Date object đã chuyển đổi
+      endTime: end, // Sử dụng Date object đã chuyển đổi
+      description: message.description
+    });
+
     return newAppointment;
   } catch (error) {
     console.error("Error creating appointment:", error);
