@@ -71,7 +71,6 @@ const CreateAppointmentHandler = async (message) => {
 
     return newAppointment;
   } catch (error) {
-    console.error("Error creating appointment:", error);
     throw error;
   }
 };

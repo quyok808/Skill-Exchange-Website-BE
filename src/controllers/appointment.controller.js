@@ -3,6 +3,7 @@ const Appointment = require("../models/appointment.model");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const CreateAppointmentRequest = require("../handlers/createAppointment/createAppointmentRequest");
+const getDataFromMediator = require("../utils/promise_Mediator");
 const cron = require("node-cron");
 
 // Tạo lịch hẹn mới
@@ -27,16 +28,12 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
     description: createAppointmentRequest.description
   });
 
-  const createAppointmentPromise = new Promise((resolve, reject) => {
-    mediator.once("createAppointmentResult", (result) => {
-      resolve(result);
-    });
-    mediator.once("createAppointmentError", (error) => {
-      reject(error);
-    });
-  });
+  const newAppointment = await getDataFromMediator(
+    "createAppointmentResult",
+    "createAppointmentError",
+    mediator // Truyền vào đối tượng mediator.
+  );
 
-  const newAppointment = await createAppointmentPromise;
   res.status(201).json({
     status: "success",
     data: {
@@ -86,16 +83,19 @@ exports.updateAppointment = catchAsync(async (req, res, next) => {
 
 // Xóa lịch hẹn
 exports.deleteAppointment = catchAsync(async (req, res, next) => {
-  const appointment = await Appointment.findByIdAndDelete(req.params.id);
+  mediator.emit("deleteAppointment", { appointmentId: req.params.id });
 
-  if (!appointment) {
-    return next(new AppError("Appointment not found", 404));
+  const haveDel = await getDataFromMediator(
+    "deleteAppointmentResult",
+    "deleteAppointmentError",
+    mediator
+  );
+  if (haveDel) {
+    res.status(204).json({
+      status: "success",
+      data: null
+    });
   }
-
-  res.status(204).json({
-    status: "success",
-    data: null
-  });
 });
 
 // Lấy danh sách lịch hẹn cho người dùng hiện tại
