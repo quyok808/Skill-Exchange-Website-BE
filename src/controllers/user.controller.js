@@ -17,8 +17,8 @@ exports.register = catchAsync(async (req, res, next) => {
       status: "success",
       token,
       data: {
-        user: user,
-      },
+        user: user
+      }
     });
   } catch (error) {
     next(error);
@@ -31,7 +31,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    token,
+    token
   });
 });
 
@@ -48,8 +48,8 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
       page: features.page,
       limit: features.limit,
       totalPages,
-      totalUsers,
-    },
+      totalUsers
+    }
   });
 });
 
@@ -66,8 +66,8 @@ exports.searchUser = catchAsync(async (req, res, next) => {
       page: features.page,
       limit: features.limit,
       totalPages,
-      totalUsers,
-    },
+      totalUsers
+    }
   });
 });
 
@@ -83,8 +83,8 @@ exports.searchUserInNetwork = catchAsync(async (req, res, next) => {
       page: features.page,
       limit: features.limit,
       totalPages,
-      totalUsers,
-    },
+      totalUsers
+    }
   });
 });
 
@@ -94,8 +94,8 @@ exports.getRelatedUserIds = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      userIds,
-    },
+      userIds
+    }
   });
 });
 
@@ -106,8 +106,8 @@ exports.getUser = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      user,
-    },
+      user
+    }
   });
 });
 
@@ -118,8 +118,8 @@ exports.updateUser = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      user,
-    },
+      user
+    }
   });
 });
 
@@ -136,8 +136,8 @@ exports.uploadUserPhoto = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      user,
-    },
+      user
+    }
   });
 });
 
@@ -151,7 +151,7 @@ exports.sendVerificationEmail = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    message: "Verification email sent to your email address.",
+    message: "Verification email sent to your email address."
   });
 });
 
@@ -167,7 +167,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   await userService.forgotPassword(req.body.email, "http", "localhost:5173");
   res.status(200).json({
     status: "success",
-    message: "Token sent to email!",
+    message: "Token sent to email!"
   });
 });
 
@@ -178,8 +178,8 @@ exports.getMe = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      user,
-    },
+      user
+    }
   });
 });
 
@@ -190,8 +190,8 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      user,
-    },
+      user
+    }
   });
 });
 
@@ -205,7 +205,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    token,
+    token
   });
 });
 
@@ -214,7 +214,7 @@ exports.logout = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    message: "Logged out successfully!",
+    message: "Logged out successfully!"
   });
 });
 
@@ -227,7 +227,7 @@ exports.changePassword = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    message: "Mật khẩu đã được thay đổi thành công!",
+    message: "Mật khẩu đã được thay đổi thành công!"
   });
 });
 
@@ -237,8 +237,8 @@ exports.addSkillToUser = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: {
-      user,
-    },
+      user
+    }
   });
 });
 
@@ -256,8 +256,8 @@ exports.getImage = catchAsync(async (req, res, next) => {
     res.status(200).json({
       status: "success",
       data: {
-        image: `data:image/jpeg;base64,${base64Image}`, // Tạo Data URI
-      },
+        image: `data:image/jpeg;base64,${base64Image}` // Tạo Data URI
+      }
     });
   });
 });
@@ -276,8 +276,19 @@ exports.getImageById = catchAsync(async (req, res, next) => {
     res.status(200).json({
       status: "success",
       data: {
-        image: `data:image/jpeg;base64,${base64Image}`, // Tạo Data URI
-      },
+        image: `data:image/jpeg;base64,${base64Image}` // Tạo Data URI
+      }
     });
+  });
+});
+
+exports.getName = catchAsync(async (req, res, next) => {
+  const user = await userService.get(req.params.id);
+  const name = user.name;
+  res.status(200).json({
+    status: "success",
+    data: {
+      name
+    }
   });
 });

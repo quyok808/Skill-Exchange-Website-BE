@@ -170,4 +170,6 @@ compile_commands.json
 
 #=== Ignore Upload folder ===
 /src/uploads/avatars/*
+/src/uploads/images/*
+/src/uploads/messages/*
 /logs/*

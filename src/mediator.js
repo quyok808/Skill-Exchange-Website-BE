@@ -7,6 +7,7 @@ const deleteAppointmentHandler = require("./handlers/deleteAppointment/deleteApp
 const getAppointmentHandler = require("./handlers/getAppointment/getAppointmentHandler");
 const getMyAppointments = require("./handlers/getMyAppointments/getMyAppointmentsHandler");
 const updateAppointmentStatus = require("./handlers/updateAppointmentStatus/updateAppointmentStatusHandler");
+const updateAppointment = require("./handlers/updateAppointment/updateAppointmentHandler");
 
 mediator.on(
   "createAppointment",
@@ -56,6 +57,15 @@ mediator.on("updateAppointmentStatus", async (message) => {
     mediator.emit("updateAppointmentStatusResult", result);
   } catch (error) {
     mediator.emit("updateAppointmentStatusError", error);
+  }
+});
+
+mediator.on("updateAppointment", async (message) => {
+  try {
+    const result = await updateAppointment(message);
+    mediator.emit("updateAppointmentResult", result);
+  } catch (error) {
+    mediator.emit("updateAppointmentError", error);
   }
 });
 
