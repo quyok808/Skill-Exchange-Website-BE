@@ -8,8 +8,8 @@ function initializeSocket(server) {
   const io = socketIo(server, {
     cors: {
       origin: "*",
-      methods: ["GET", "POST"],
-    },
+      methods: ["GET", "POST"]
+    }
   });
 
   io.on("connection", (socket) => {
@@ -21,15 +21,19 @@ function initializeSocket(server) {
       // Nếu userId chưa có, tạo Set mới; nếu có, thêm socket.id vào Set
       if (!onlineUsers.has(userId)) {
         onlineUsers.set(userId, new Set());
-      }  
+      }
       onlineUsers.get(userId).add(socket.id);
       console.log(`User ${userId} online với socketId ${socket.id}`);
       io.emit("onlineStatusUpdate", { userId, status: "online" });
     });
 
     socket.on("checkUserStatus", (userId) => {
-      const isOnline = onlineUsers.has(userId) && onlineUsers.get(userId).size > 0;
-      socket.emit("userStatusResponse", { userId, status: isOnline ? "online" : "offline" });
+      const isOnline =
+        onlineUsers.has(userId) && onlineUsers.get(userId).size > 0;
+      socket.emit("userStatusResponse", {
+        userId,
+        status: isOnline ? "online" : "offline"
+      });
     });
 
     // Xử lý tham gia phòng chat
@@ -37,7 +41,6 @@ function initializeSocket(server) {
       try {
         socket.join(chatRoomId);
         console.log(`User ${socket.id} joined room ${chatRoomId}`);
-
       } catch (error) {
         console.error("Lỗi khi lấy tin nhắn:", error);
       }
@@ -49,13 +52,12 @@ function initializeSocket(server) {
         const newMessage = await Message.create({
           chatRoom: chatRoomId,
           sender,
-          content,
+          content
         });
 
-        const populatedMessage = await Message.findById(newMessage._id).populate(
-          "sender",
-          "name email"
-        );
+        const populatedMessage = await Message.findById(
+          newMessage._id
+        ).populate("sender", "name email");
 
         // Gửi tin nhắn đến tất cả user trong phòng
         socket.to(chatRoomId).emit("receiveMessage", populatedMessage);
@@ -65,16 +67,17 @@ function initializeSocket(server) {
       }
     });
 
-    // Khi user rời khỏi ứng dụng
-    // socket.on("disconnect", () => {
-    //   for (let [userId, socketId] of onlineUsers.entries()) {
-    //     if (socketId === socket.id) {
-    //       onlineUsers.delete(userId);
-    //       console.log(`User ${userId} offline`);
-    //       io.emit("onlineStatusUpdate", { userId, status: "offline" });
-    //     }
-    //   }
-    // });
+    socket.on("send-notify-book-appointment", async (receiverId) => {
+      const receiverSocketIds = onlineUsers.get(receiverId);
+      if (receiverSocketIds) {
+        receiverSocketIds.forEach((socketId) => {
+          io.to(socketId).emit("receive-notify-book-appointment", {
+            message: "Bạn có một lịch hẹn mới!"
+          });
+        });
+      }
+    });
+
     socket.on("disconnect", () => {
       for (let [userId, socketIds] of onlineUsers.entries()) {
         if (socketIds.has(socket.id)) {
@@ -87,7 +90,6 @@ function initializeSocket(server) {
         }
       }
     });
-
   });
 
   // Đặt io vào app để có thể sử dụng trong các API controllers

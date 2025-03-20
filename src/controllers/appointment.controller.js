@@ -68,8 +68,8 @@ exports.updateAppointment = catchAsync(async (req, res, next) => {
   });
 
   const appointment = await getDataFromMediator(
-    "updateAppointmentStatusResult",
-    "updateAppointmentStatusError",
+    "updateAppointmentResult",
+    "updateAppointmentError",
     mediator
   );
 
@@ -119,7 +119,7 @@ exports.getMyAppointments = catchAsync(async (req, res, next) => {
 // Thay đổi trạng thái lịch hẹn (ví dụ: accept, reject, cancel)
 exports.updateAppointmentStatus = catchAsync(async (req, res, next) => {
   mediator.emit("updateAppointmentStatus", {
-    status: req.body,
+    status: req.body.status,
     AppointmentId: req.params.id,
     userId: req.user.id
   });

@@ -471,7 +471,13 @@ exports.updateMe = async (id, updateUserData) => {
     }
     return user;
   } catch (error) {
-    throw error;
+    if (error.code === 11000) {
+      // // Lỗi duplicate key
+      // const duplicateField = Object.keys(error.keyValue)[0];
+      throw new AppError("SĐT đã tồn tại!", 409);
+    } else {
+      throw error; // Chuyển lỗi khác cho controller
+    }
   }
 };
 
