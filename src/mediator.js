@@ -8,6 +8,8 @@ const getAppointmentHandler = require("./handlers/getAppointment/getAppointmentH
 const getMyAppointments = require("./handlers/getMyAppointments/getMyAppointmentsHandler");
 const updateAppointmentStatus = require("./handlers/updateAppointmentStatus/updateAppointmentStatusHandler");
 const updateAppointment = require("./handlers/updateAppointment/updateAppointmentHandler");
+const GetAllUsersHandler = require("./handlers/Admin/getAllUsersHandler");
+const deleteUserHandler = require("./handlers/Admin/deleteUserHandler");
 
 mediator.on(
   "createAppointment",
@@ -69,4 +71,21 @@ mediator.on("updateAppointment", async (message) => {
   }
 });
 
+mediator.on("getAllUsers", async (message) => {
+  try {
+    const result = await GetAllUsersHandler(message);
+    mediator.emit("getAllUsersResult", result);
+  } catch (error) {
+    mediator.emit("getAllUsersError", error);
+  }
+});
+
+mediator.on("deleteUser", async (message) => {
+  try {
+    const result = await deleteUserHandler(message);
+    mediator.emit("deleteUserResult", result);
+  } catch (error) {
+    mediator.emit("deleteUserError", error);
+  }
+});
 module.exports = mediator;

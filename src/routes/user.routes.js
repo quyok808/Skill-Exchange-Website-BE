@@ -42,11 +42,5 @@ router.get("/profile/image", userController.getImage); // Route để lấy ản
 router.get("/profile/image/:id", userController.getImageById);
 router.get("/getUserID", userController.getRelatedUserIds);
 router.get("/name/:id", userController.getName);
-// Các route cần xác thực (chỉ role admin mới có quyền)
-router.use(authMiddleware.protect, authMiddleware.restrictTo("admin")); // Áp dụng middleware cho các route phía dưới
-router.get("/", userController.getAllUsers);
-router.get("/:id", userController.getUser);
-router.put("/:id", userController.updateUser);
-router.delete("/:id", userController.deleteUser);
 
 module.exports = router;
