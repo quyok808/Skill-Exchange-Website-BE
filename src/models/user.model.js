@@ -13,11 +13,12 @@ const userSchema = new mongoose.Schema(
     photo: { type: String, default: "default.jpg" }, // Thêm trường photo
     skills: [{ type: mongoose.Schema.Types.ObjectId, ref: "Skill" }],
     active: { type: Boolean, default: false }, // Trạng thái đã xác thực email
+    lock: { type: Boolean, default: false },
     passwordResetToken: String,
     passwordResetExpires: Date,
     emailVerificationToken: String, // Thêm token để xác thực email
     emailVerificationExpires: Date,
-    passwordChangedAt: Date,
+    passwordChangedAt: Date
   },
   { timestamps: true }
 );

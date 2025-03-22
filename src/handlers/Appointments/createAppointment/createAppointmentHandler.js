@@ -1,5 +1,5 @@
-const Appointment = require("../../models/appointment.model");
-const AppError = require("../../utils/appError");
+const Appointment = require("../../../models/appointment.model");
+const AppError = require("../../../utils/appError");
 
 const CreateAppointmentHandler = async (message) => {
   try {

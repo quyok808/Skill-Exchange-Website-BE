@@ -7,6 +7,7 @@ const skillRoutes = require("./routes/skill.route");
 const appointmentRoutes = require("./routes/appointment.routes");
 const chatRoutes = require("./routes/chat.route");
 const adminRoutes = require("./routes/admin.route");
+const reportRoutes = require("./routes/report.route");
 const errorMiddleware = require("./middlewares/error.middleware");
 
 const path = require("path");
@@ -31,6 +32,7 @@ app.use("/api/skill", skillRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/admins", adminRoutes);
+app.use("/api/reports", reportRoutes);
 
 // Error handling middleware (luôn đặt cuối cùng)
 app.use(errorMiddleware);

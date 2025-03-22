@@ -36,3 +36,56 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
 
   res.status(204).json({ status: "success", data: null });
 });
+
+exports.lockUser = catchAsync(async (req, res, next) => {
+  mediator.emit("lockUser", { userId: req.params.id, lock: req.body.lock });
+
+  const user = await getDataFromMediator(
+    "lockUserResult",
+    "lockUserError",
+    mediator
+  );
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user
+    }
+  });
+});
+
+exports.changeRole = catchAsync(async (req, res, next) => {
+  mediator.emit("changeRole", {
+    userId: req.params.id,
+    newrole: req.body.role
+  });
+
+  const user = await getDataFromMediator(
+    "changeRoleResult",
+    "changeRoleError",
+    mediator
+  );
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user
+    }
+  });
+});
+
+exports.getConnectionReports = catchAsync(async (req, res, next) => {
+  mediator.emit("getConnectionReports");
+
+  const reports = await getDataFromMediator(
+    "getConnectionReportsResult",
+    "getConnectionReportsError",
+    mediator
+  );
+  res.status(200).json({
+    status: "success",
+    data: {
+      reports
+    }
+  });
+});

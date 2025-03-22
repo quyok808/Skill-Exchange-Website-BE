@@ -8,7 +8,9 @@ const router = express.Router();
 router.use(authMiddleware.protect, authMiddleware.restrictTo("admin")); // Áp dụng middleware cho các route phía dưới
 router.get("/", adminController.getAllUsers);
 // router.get("/:id", userController.getUser);
-// router.put("/:id", userController.updateUser);
 router.delete("/:id", adminController.deleteUser);
+router.put("/lock/:id", adminController.lockUser);
+router.put("/change-role/:id", adminController.changeRole);
+router.get("/connection-report", adminController.getConnectionReports);
 
 module.exports = router;
