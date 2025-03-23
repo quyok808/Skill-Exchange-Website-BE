@@ -4,7 +4,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 const uploadMiddleware = require("../middlewares/upload.middleware");
 const {
   validateRegister,
-  validateResetPassword,
+  validateResetPassword
 } = require("../middlewares/validate.middleware");
 
 const router = express.Router();
@@ -41,11 +41,6 @@ router.put("/add-skill", userController.addSkillToUser);
 router.get("/profile/image", userController.getImage); // Route để lấy ảnh avatar
 router.get("/profile/image/:id", userController.getImageById);
 router.get("/getUserID", userController.getRelatedUserIds);
-// Các route cần xác thực (chỉ role admin mới có quyền)
-router.use(authMiddleware.protect, authMiddleware.restrictTo("admin")); // Áp dụng middleware cho các route phía dưới
-router.get("/", userController.getAllUsers);
-router.get("/:id", userController.getUser);
-router.put("/:id", userController.updateUser);
-router.delete("/:id", userController.deleteUser);
+router.get("/name/:id", userController.getName);
 
 module.exports = router;

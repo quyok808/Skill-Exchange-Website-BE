@@ -1,6 +1,8 @@
+const mediator = require("../mediator");
 const Appointment = require("../models/appointment.model");
 const catchAsync = require("../utils/catchAsync");
-const AppError = require("../utils/appError");
+const CreateAppointmentRequest = require("../handlers/Appointments/createAppointment/createAppointmentRequest");
+const getDataFromMediator = require("../utils/promise_Mediator");
 const cron = require("node-cron");
 
 // Tạo lịch hẹn mới
@@ -8,59 +10,28 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
   const { receiverId, startTime, endTime, description } = req.body;
   const senderId = req.user.id;
 
-  // Validate inputs (Moved to the top for clarity)
-  if (!receiverId || !startTime || !endTime || !description) {
-    return next(new AppError("Please provide all required fields", 400));
-  }
-
-  if (senderId === receiverId) {
-    return next(
-      new AppError("Cannot schedule an appointment with yourself", 400)
-    );
-  }
-
-  //Kiểm tra xem thời gian hẹn có hợp lệ không
-  if (startTime >= endTime) {
-    return next(
-      new AppError("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc", 400)
-    );
-  }
-
-  // Convert startTime and endTime to Date objects for accurate comparison
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-
-  //Check for overlapping appointments
-  const overlappingAppointment = await Appointment.findOne({
-    $or: [
-      {
-        $and: [
-          { startTime: { $lt: end } },
-          { endTime: { $gt: start } },
-          { $or: [{ status: "accepted" }, { status: "pending" }] },
-          { $or: [{ senderId: senderId }, { receiverId: senderId }] }, // Either sender or receiver is the current user
-          { $or: [{ senderId: receiverId }, { receiverId: receiverId }] } // Either sender or receiver is the other user
-        ]
-      }
-    ]
-  });
-
-  if (overlappingAppointment) {
-    return next(
-      new AppError(
-        "This time slot is already booked. Please choose a different time.",
-        409
-      )
-    ); //409 Conflict
-  }
-
-  const newAppointment = await Appointment.create({
+  const createAppointmentRequest = new CreateAppointmentRequest(
     senderId,
     receiverId,
-    startTime: start, // Store as Date objects
-    endTime: end, // Store as Date objects
+    startTime,
+    endTime,
     description
+  );
+
+  // "Unpackage" dữ liệu từ request object và truyền vào emit
+  mediator.emit("createAppointment", {
+    senderId: createAppointmentRequest.senderId,
+    receiverId: createAppointmentRequest.receiverId,
+    startTime: createAppointmentRequest.startTime,
+    endTime: createAppointmentRequest.endTime,
+    description: createAppointmentRequest.description
   });
+
+  const newAppointment = await getDataFromMediator(
+    "createAppointmentResult",
+    "createAppointmentError",
+    mediator // Truyền vào đối tượng mediator.
+  );
 
   res.status(201).json({
     status: "success",
@@ -72,11 +43,13 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
 
 // Lấy thông tin một lịch hẹn
 exports.getAppointment = catchAsync(async (req, res, next) => {
-  const appointment = await Appointment.findById(req.params.id);
+  mediator.emit("getAppointment", { appointmentId: req.params.id });
 
-  if (!appointment) {
-    return next(new AppError("Appointment not found", 404));
-  }
+  const appointment = await getDataFromMediator(
+    "getAppointmentResult",
+    "getAppointmentError",
+    mediator
+  );
 
   res.status(200).json({
     status: "success",
@@ -88,18 +61,16 @@ exports.getAppointment = catchAsync(async (req, res, next) => {
 
 // Cập nhật thông tin lịch hẹn
 exports.updateAppointment = catchAsync(async (req, res, next) => {
-  const appointment = await Appointment.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    {
-      new: true,
-      runValidators: true
-    }
-  );
+  mediator.emit("updateAppointment", {
+    appointmentId: req.params.id,
+    appointmentData: req.body
+  });
 
-  if (!appointment) {
-    return next(new AppError("Appointment not found", 404));
-  }
+  const appointment = await getDataFromMediator(
+    "updateAppointmentResult",
+    "updateAppointmentError",
+    mediator
+  );
 
   res.status(200).json({
     status: "success",
@@ -111,23 +82,30 @@ exports.updateAppointment = catchAsync(async (req, res, next) => {
 
 // Xóa lịch hẹn
 exports.deleteAppointment = catchAsync(async (req, res, next) => {
-  const appointment = await Appointment.findByIdAndDelete(req.params.id);
+  mediator.emit("deleteAppointment", { appointmentId: req.params.id });
 
-  if (!appointment) {
-    return next(new AppError("Appointment not found", 404));
+  const haveDel = await getDataFromMediator(
+    "deleteAppointmentResult",
+    "deleteAppointmentError",
+    mediator
+  );
+  if (haveDel) {
+    res.status(204).json({
+      status: "success",
+      data: null
+    });
   }
-
-  res.status(204).json({
-    status: "success",
-    data: null
-  });
 });
 
 // Lấy danh sách lịch hẹn cho người dùng hiện tại
 exports.getMyAppointments = catchAsync(async (req, res, next) => {
-  const appointments = await Appointment.find({
-    $or: [{ senderId: req.user.id }, { receiverId: req.user.id }]
-  });
+  mediator.emit("getMyAppointments", { userId: req.user.id });
+
+  const appointments = await getDataFromMediator(
+    "getMyAppointmentsResult",
+    "getMyAppointmentsError",
+    mediator
+  );
 
   res.status(200).json({
     status: "success",
@@ -139,37 +117,17 @@ exports.getMyAppointments = catchAsync(async (req, res, next) => {
 
 // Thay đổi trạng thái lịch hẹn (ví dụ: accept, reject, cancel)
 exports.updateAppointmentStatus = catchAsync(async (req, res, next) => {
-  const { status } = req.body;
+  mediator.emit("updateAppointmentStatus", {
+    status: req.body.status,
+    AppointmentId: req.params.id,
+    userId: req.user.id
+  });
 
-  const appointment = await Appointment.findById(req.params.id);
-
-  if (!appointment) {
-    return next(new AppError("Appointment not found", 404));
-  }
-
-  // Authorization: Chỉ receiver mới có quyền accept/reject
-  if (status === "accepted" || status === "rejected") {
-    if (appointment.receiverId.toString() !== req.user.id) {
-      return next(
-        new AppError("You are not authorized to perform this action", 403)
-      );
-    }
-  }
-
-  // Authorization: Cả sender và receiver đều có quyền cancel
-  if (status === "canceled") {
-    if (
-      appointment.senderId.toString() !== req.user.id &&
-      appointment.receiverId.toString() !== req.user.id
-    ) {
-      return next(
-        new AppError("You are not authorized to perform this action", 403)
-      );
-    }
-  }
-
-  appointment.status = status;
-  await appointment.save();
+  const appointment = await getDataFromMediator(
+    "updateAppointmentStatusResult",
+    "updateAppointmentStatusError",
+    mediator
+  );
 
   res.status(200).json({
     status: "success",
