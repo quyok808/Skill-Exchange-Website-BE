@@ -1,8 +1,7 @@
 const mediator = require("../mediator");
 const Appointment = require("../models/appointment.model");
 const catchAsync = require("../utils/catchAsync");
-const AppError = require("../utils/appError");
-const CreateAppointmentRequest = require("../handlers/createAppointment/createAppointmentRequest");
+const CreateAppointmentRequest = require("../handlers/Appointments/createAppointment/createAppointmentRequest");
 const getDataFromMediator = require("../utils/promise_Mediator");
 const cron = require("node-cron");
 

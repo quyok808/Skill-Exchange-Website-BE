@@ -1,5 +1,5 @@
-const appointmentModel = require("../../models/appointment.model");
-const AppError = require("../../utils/appError");
+const appointmentModel = require("../../../models/appointment.model");
+const AppError = require("../../../utils/appError");
 
 const UpdateAppointmentStatus = async (message) => {
   try {
