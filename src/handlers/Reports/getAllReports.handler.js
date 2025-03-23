@@ -4,6 +4,7 @@ const GetAllReportsHandler = async (message) => {
   try {
     const reports = await reportModel
       .find()
+      .sort({ createdAt: -1 })
       .populate("userId reportedBy", "name email");
     return reports;
   } catch (error) {
