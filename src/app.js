@@ -34,6 +34,7 @@ app.use("/api/chats", chatRoutes);
 app.use("/api/admins", adminRoutes);
 app.use("/api/reports", reportRoutes);
 
+
 // Error handling middleware (luôn đặt cuối cùng)
 app.use(errorMiddleware);
 

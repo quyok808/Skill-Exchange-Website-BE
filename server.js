@@ -14,7 +14,6 @@ const server = http.createServer(app);
 const { initializeSocket } = require("./src/configs/socket");
 initializeSocket(server);
 
-// Khởi động server
 server.listen(port, () => {
   console.log(`Server is running on http://${process.env.HOST}:${port}`);
 });
