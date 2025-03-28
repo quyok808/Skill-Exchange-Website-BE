@@ -1,12 +1,9 @@
 const http = require("http");
 // const socketIo = require("socket.io");
 const app = require("./src/app");
-const logger = require("./src/utils/logger");
-const ChatRoom = require("./src/models/chat.model");
 const connectDB = require("./src/configs/database");
 require("dotenv").config(); // Load environment variables from .env
 const port = process.env.PORT || 3000;
-
 
 // Kết nối database
 connectDB();

@@ -68,6 +68,13 @@ exports.login = async (loginInfo) => {
       throw new AppError("Vui lòng xác nhận email trước khi đăng nhập.", 403);
     }
 
+    if (user.lock) {
+      throw new AppError(
+        "Tài khoản của bạn đã bị khoá, Vui lòng liên hệ với QTV thể mở khoá tài khoản.",
+        403
+      );
+    }
+
     // 3) Nếu mọi thứ OK, gửi token đến client
     const token = signToken(user._id);
 
@@ -271,19 +278,6 @@ exports.put = async (id, updateUserData) => {
   }
 };
 
-exports.delete = async (id) => {
-  try {
-    const user = await User.findByIdAndDelete(id);
-
-    if (!user) {
-      throw new AppError("No user found with that ID", 404);
-    }
-    return user;
-  } catch (error) {
-    throw error;
-  }
-};
-
 exports.uploadAvatar = async (id, filename) => {
   try {
     const user = await User.findByIdAndUpdate(
@@ -471,7 +465,13 @@ exports.updateMe = async (id, updateUserData) => {
     }
     return user;
   } catch (error) {
-    throw error;
+    if (error.code === 11000) {
+      // // Lỗi duplicate key
+      // const duplicateField = Object.keys(error.keyValue)[0];
+      throw new AppError("SĐT đã tồn tại!", 409);
+    } else {
+      throw error; // Chuyển lỗi khác cho controller
+    }
   }
 };
 

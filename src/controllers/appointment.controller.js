@@ -1,8 +1,7 @@
 const mediator = require("../mediator");
 const Appointment = require("../models/appointment.model");
 const catchAsync = require("../utils/catchAsync");
-const AppError = require("../utils/appError");
-const CreateAppointmentRequest = require("../handlers/createAppointment/createAppointmentRequest");
+const CreateAppointmentRequest = require("../handlers/Appointments/createAppointment/createAppointmentRequest");
 const getDataFromMediator = require("../utils/promise_Mediator");
 const cron = require("node-cron");
 
@@ -68,8 +67,8 @@ exports.updateAppointment = catchAsync(async (req, res, next) => {
   });
 
   const appointment = await getDataFromMediator(
-    "updateAppointmentStatusResult",
-    "updateAppointmentStatusError",
+    "updateAppointmentResult",
+    "updateAppointmentError",
     mediator
   );
 
@@ -119,7 +118,7 @@ exports.getMyAppointments = catchAsync(async (req, res, next) => {
 // Thay đổi trạng thái lịch hẹn (ví dụ: accept, reject, cancel)
 exports.updateAppointmentStatus = catchAsync(async (req, res, next) => {
   mediator.emit("updateAppointmentStatus", {
-    status: req.body,
+    status: req.body.status,
     AppointmentId: req.params.id,
     userId: req.user.id
   });

@@ -1,10 +1,9 @@
-const appointmentModel = require("../../models/appointment.model");
-const AppError = require("../../utils/appError");
+const appointmentModel = require("../../../models/appointment.model");
+const AppError = require("../../../utils/appError");
 
 const UpdateAppointmentStatus = async (message) => {
   try {
     const appointment = await appointmentModel.findById(message.AppointmentId);
-
     if (!appointment) {
       throw new AppError("Không tìm thấy thông tin lịch hẹn", 404);
     }
