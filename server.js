@@ -34,7 +34,7 @@ function getLocalIP() {
   return process.env.HOST || "0.0.0.0"; // Fallback về 0.0.0.0 nếu không tìm thấy
 }
 
-const host = getLocalIP(); // Lấy địa chỉ IP cục bộ
+const host = "0.0.0.0";
 
 // Kết nối database
 connectDB();
