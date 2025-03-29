@@ -68,14 +68,14 @@ function initializeSocket(server) {
 
     // Xử lý gọi video
     socket.on("callUser", ({ to, offer }) => {
-      io.to([...onlineUsers.get(to) || []]).emit("incomingCall", {
+      io.to([...(onlineUsers.get(to) || [])]).emit("incomingCall", {
         from: socket.id,
-        offer,
+        offer
       });
     });
 
     socket.on("answerCall", ({ to, answer }) => {
-      io.to([...onlineUsers.get(to) || []]).emit("callAnswered", { answer });
+      io.to([...(onlineUsers.get(to) || [])]).emit("callAnswered", { answer });
     });
 
     // Thêm xử lý updateOffer khi có track mới (ví dụ: chia sẻ màn hình)
@@ -83,7 +83,7 @@ function initializeSocket(server) {
       const targetSocketIds = onlineUsers.get(to) || [];
       io.to([...targetSocketIds]).emit("updateOffer", {
         from: socket.id,
-        offer,
+        offer
       });
       console.log(`Update offer sent to user ${to} from ${socket.id}`);
     });
@@ -95,11 +95,13 @@ function initializeSocket(server) {
     });
 
     socket.on("iceCandidate", ({ to, candidate }) => {
-      io.to([...onlineUsers.get(to) || []]).emit("iceCandidate", { candidate });
+      io.to([...(onlineUsers.get(to) || [])]).emit("iceCandidate", {
+        candidate
+      });
     });
 
     socket.on("endCall", ({ to }) => {
-      io.to([...onlineUsers.get(to) || []]).emit("callEnded");
+      io.to([...(onlineUsers.get(to) || [])]).emit("callEnded");
     });
 
     // Thêm xử lý dừng chia sẻ màn hình
@@ -108,7 +110,7 @@ function initializeSocket(server) {
       io.to([...targetSocketIds]).emit("screenShareEnded");
       console.log(`Screen share ended sent to user ${to} from ${socket.id}`);
     });
-    
+
     socket.on("send-notify-book-appointment", async (receiverId) => {
       const receiverSocketIds = onlineUsers.get(receiverId);
       if (receiverSocketIds) {
@@ -139,5 +141,3 @@ function initializeSocket(server) {
 }
 
 module.exports = { initializeSocket };
-
-
