@@ -1,6 +1,7 @@
 const catchAsync = require("../utils/catchAsync"); // Helper function to catch errors in async functions
 const userService = require("../services/user.services");
 const fs = require("fs");
+const AppError = require("../utils/appError");
 
 // Đăng ký người dùng mới
 exports.register = catchAsync(async (req, res, next) => {
