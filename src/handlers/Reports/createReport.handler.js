@@ -3,23 +3,27 @@ const AppError = require("../../utils/appError");
 
 const createReportHandler = async (message) => {
   try {
+    //1
     if (!message.reason) {
-      throw new AppError("Vui lòng nhập lý do báo cáo!", 400);
+      //2
+      throw new AppError("Vui lòng nhập lý do báo cáo!", 400); //3
     }
 
     if (message.userId === message.reportedBy) {
-      throw new AppError("Không thể tự báo cáo chính mình", 400);
+      //4
+      throw new AppError("Không thể tự báo cáo chính mình", 400); //5
     }
 
     const newReports = await reportModel.create({
       userId: message.userId,
       reportedBy: message.reportedBy,
       reason: message.reason
-    });
+    }); //6
 
-    return newReports;
+    return newReports; //7
   } catch (error) {
-    throw error;
+    //8
+    throw error; //9
   }
 };
 
