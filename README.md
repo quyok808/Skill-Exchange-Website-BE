@@ -1,17 +1,7 @@
 # Skill-Exchange-Website-BE
 
-# Library
+B1: npm install
 
-- express
-- body-parser
-- morgan
-- bcryptjs
-- jsonwebtoken
-- cors
-- dotenv
-- mongodb
-- mongoose
-- nodemailer
-- multer
-- winston
-- express-validator
+B2: Paste file .env vào folder project
+
+B3: npm start
