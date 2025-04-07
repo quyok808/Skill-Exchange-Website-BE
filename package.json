@@ -9,13 +9,17 @@
   "scripts": {
     "test_default": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js",
-    "test": "jest"
+    "test": "jest",
+    "test:json": "jest --json --outputFile=TestResults/test-results.json",
+    "report:excel": "node generate-excel-report.js",
+    "test-report": "npm run test:json && npm run report:excel"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
     "fs": "^0.0.1-security",

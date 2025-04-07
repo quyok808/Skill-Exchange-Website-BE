@@ -173,3 +173,4 @@ compile_commands.json
 /src/uploads/images/*
 /src/uploads/messages/*
 /logs/*
+/TestResults/*

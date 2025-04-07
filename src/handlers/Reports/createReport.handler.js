@@ -4,9 +4,12 @@ const AppError = require("../../utils/appError");
 const createReportHandler = async (message) => {
   try {
     //1
-    if (!message.reason) {
-      //2
-      throw new AppError("Vui lòng nhập lý do báo cáo!", 400); //3
+    // if (!message.reason) {
+    //   //2
+    //   throw new AppError("Vui lòng nhập lý do báo cáo!", 400); //3
+    // }
+    if (!message.reason || message.reason.trim() === "") {
+      throw new AppError("Vui lòng nhập lý do báo cáo!", 400);
     }
 
     if (message.userId === message.reportedBy) {
