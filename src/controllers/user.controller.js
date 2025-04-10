@@ -160,7 +160,7 @@ exports.sendVerificationEmail = catchAsync(async (req, res, next) => {
 exports.verifyEmail = catchAsync(async (req, res, next) => {
   await userService.verifyEmail(req.params.token);
 
-  res.redirect(301, "http://localhost:5173");
+  res.redirect(301, "https://onlyaclassroom.edu.vn");
 });
 
 // Quên mật khẩu
