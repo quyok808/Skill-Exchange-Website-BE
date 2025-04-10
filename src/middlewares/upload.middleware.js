@@ -1,44 +1,13 @@
 const multer = require("multer");
 const AppError = require("../utils/appError");
-const path = require("path");
+const cloudinary = require("../configs/cloudinary");
+const { Readable } = require("stream");
 
-// Cấu hình lưu trữ
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    let uploadPath = "";
+// Cấu hình lưu trữ tạm thời trong bộ nhớ
+const storage = multer.memoryStorage();
 
-    if (file.fieldname === "photo") {
-      uploadPath = "src/uploads/avatars/";
-    } else if (file.fieldname === "image") {
-      uploadPath = "src/uploads/images/";
-    } else if (file.fieldname === "file") {
-      uploadPath = "src/uploads/messages/";
-    } else {
-      return cb(new AppError("Không xác định fieldname!", 400), false);
-    }
-
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    let fileName = "";
-    const ext = path.extname(file.originalname);
-
-    if (file.fieldname === "photo") {
-      fileName = `user-${req.user.id}-${Date.now()}${ext}`;
-    } else if (file.fieldname === "image") {
-      fileName = `image-${Date.now()}${ext}`;
-    } else if (file.fieldname === "file") {
-      fileName = `message-${Date.now()}${ext}`;
-    }
-
-    cb(null, fileName);
-  }
-});
-
-// Lọc file (chỉ cho phép hình ảnh và các loại file cho message)
 const fileFilter = (req, file, cb) => {
   const allowedImageMimeTypes = ["image/jpeg", "image/png", "image/gif"];
-
   const allowedMessageMimeTypes = [
     "image/jpeg",
     "image/png",
@@ -63,48 +32,116 @@ const fileFilter = (req, file, cb) => {
   ) {
     cb(null, true);
   } else {
-    let errorMessage = "Loại file không được hỗ trợ.";
-    if (file.fieldname === "photo" || file.fieldname === "image") {
-      errorMessage = "Chỉ cho phép hình ảnh cho avatar và image.";
-    } else if (file.fieldname === "file") {
-      errorMessage = "Chỉ cho phép hình ảnh, video và PDF cho tin nhắn.";
-    }
+    let errorMessage =
+      file.fieldname === "photo" || file.fieldname === "image"
+        ? "Chỉ cho phép hình ảnh cho avatar và image."
+        : "Chỉ cho phép hình ảnh, video và PDF cho tin nhắn.";
     cb(new AppError(errorMessage, 400), false);
   }
 };
 
 const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 1024 * 1024 * 5 // Giới hạn kích thước file (5MB)
-  }
+  storage,
+  fileFilter,
+  limits: { fileSize: 1024 * 1024 * 5 } // 5MB
 });
 
-// Middleware kết hợp (Sửa đổi ở đây)
-exports.uploadBoth = (req, res, next) => {
-  upload.fields([
-    { name: "file", maxCount: 1 }, // 'file' cho các file đính kèm
-    { name: "image", maxCount: 1 } // 'image' cho ảnh
-  ])(req, res, function (err) {
-    if (err) {
-      // Xử lý lỗi Multer
-      console.error("Multer Error:", err);
-      if (err instanceof multer.MulterError) {
-        if (err.code === "LIMIT_FILE_SIZE") {
-          return next(
-            new AppError("Kích thước file quá lớn (tối đa 5MB).", 400)
-          );
-        }
-        return next(new AppError(`Lỗi upload: ${err.message}`, 400));
-      } else {
-        return next(new AppError(`Lỗi server: ${err.message}`, 500));
+// Hàm upload lên Cloudinary
+const uploadToCloudinary = (file, folder) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
       }
-    }
-    next(); // Chuyển đến middleware tiếp theo nếu không có lỗi
+    );
+    Readable.from(file.buffer).pipe(stream);
   });
-};
 
-exports.uploadUserPhoto = upload.single("photo"); // 'photo' là tên field trong form data (avatar)
-exports.uploadImage = upload.single("image"); // 'image' là tên field trong form data (ảnh chung)
-exports.uploadMessageFile = upload.single("file"); // 'file' là tên field trong form data (tin nhắn)
+// Middleware xử lý upload
+exports.uploadBoth = (req, res, next) =>
+  upload.fields([
+    { name: "file", maxCount: 1 },
+    { name: "image", maxCount: 1 }
+  ])(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return next(new AppError("Kích thước file quá lớn (tối đa 5MB).", 400));
+      }
+      return next(new AppError(`Lỗi upload: ${err.message}`, 400));
+    }
+
+    try {
+      if (req.files) {
+        if (req.files["image"]) {
+          const result = await uploadToCloudinary(
+            req.files["image"][0],
+            "images"
+          );
+          req.imageUrl = result.secure_url;
+        }
+        if (req.files["file"]) {
+          const result = await uploadToCloudinary(
+            req.files["file"][0],
+            "messages"
+          );
+          req.fileUrl = result.secure_url;
+        }
+      }
+      next();
+    } catch (error) {
+      next(new AppError(`Lỗi upload lên Cloudinary: ${error.message}`, 500));
+    }
+  });
+
+exports.uploadUserPhoto = (req, res, next) =>
+  upload.single("photo")(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return next(new AppError("Kích thước file quá lớn (tối đa 5MB).", 400));
+      }
+      return next(new AppError(`Lỗi upload: ${err.message}`, 400));
+    }
+    try {
+      const result = await uploadToCloudinary(req.file, "avatars");
+      req.photoUrl = result.secure_url;
+      next();
+    } catch (error) {
+      next(new AppError(`Lỗi upload lên Cloudinary: ${error.message}`, 500));
+    }
+  });
+
+exports.uploadImage = (req, res, next) =>
+  upload.single("image")(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return next(new AppError("Kích thước file quá lớn (tối đa 5MB).", 400));
+      }
+      return next(new AppError(`Lỗi upload: ${err.message}`, 400));
+    }
+    try {
+      const result = await uploadToCloudinary(req.file, "images");
+      req.imageUrl = result.secure_url;
+      next();
+    } catch (error) {
+      next(new AppError(`Lỗi upload lên Cloudinary: ${error.message}`, 500));
+    }
+  });
+
+exports.uploadMessageFile = (req, res, next) =>
+  upload.single("file")(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return next(new AppError("Kích thước file quá lớn (tối đa 5MB).", 400));
+      }
+      return next(new AppError(`Lỗi upload: ${err.message}`, 400));
+    }
+    try {
+      const result = await uploadToCloudinary(req.file, "messages");
+      req.fileUrl = result.secure_url;
+      next();
+    } catch (error) {
+      next(new AppError(`Lỗi upload lên Cloudinary: ${error.message}`, 500));
+    }
+  });
