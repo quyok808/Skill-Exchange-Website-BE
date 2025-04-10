@@ -133,7 +133,7 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
 
 // Upload photo
 exports.uploadUserPhoto = catchAsync(async (req, res, next) => {
-  const user = await userService.uploadAvatar(req.user.id, req.file.filename);
+  const user = await userService.uploadAvatar(req.user.id, req);
   res.status(200).json({
     status: "success",
     data: {

@@ -278,22 +278,31 @@ exports.put = async (id, updateUserData) => {
   }
 };
 
-exports.uploadAvatar = async (id, filename) => {
+exports.uploadAvatar = async (id, req) => {
   try {
+    // Lấy URL từ Cloudinary được gắn vào req bởi middleware
+    const photoUrl = req.photoUrl;
+
+    if (!photoUrl) {
+      throw new AppError("Không có file ảnh nào được upload", 400);
+    }
+
     const user = await User.findByIdAndUpdate(
       id,
-      { photo: filename },
+      { photo: photoUrl }, // Lưu URL từ Cloudinary thay vì filename
       {
-        new: true,
-        runValidators: true
+        new: true, // Trả về document đã cập nhật
+        runValidators: true // Chạy các validator trong schema
       }
     ).populate("skills");
+
     if (!user) {
-      return next(new AppError("No user found with that ID", 404));
+      throw new AppError("Không tìm thấy user với ID này", 404);
     }
+
     return user;
   } catch (error) {
-    throw error;
+    throw error; // Ném lỗi để middleware hoặc controller xử lý
   }
 };
 
