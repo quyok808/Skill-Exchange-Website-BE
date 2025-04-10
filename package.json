@@ -9,7 +9,7 @@
   "scripts": {
     "test_default": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js",
-    "test": "jest",
+    "test": "jest --coverage",
     "test:json": "jest --json --outputFile=TestResults/test-results.json",
     "report:excel": "node generate-excel-report.js",
     "test-report": "npm run test:json && npm run report:excel"

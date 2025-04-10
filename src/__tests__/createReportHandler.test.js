@@ -11,8 +11,7 @@ beforeEach(() => {
 });
 
 describe("createReportHandler Unit Tests", () => {
-  // TC_01: Lỗi - message.reason là chuỗi rỗng ("")
-  test("TC_01: should throw AppError(400) if reason is an empty string", async () => {
+  test("TC_01: Để lý do báo cáo (reason) là chuỗi rỗng", async () => {
     const message = { userId: "1", reportedBy: "2", reason: "" };
 
     await expect(createReportHandler(message)).rejects.toMatchObject({
@@ -22,8 +21,7 @@ describe("createReportHandler Unit Tests", () => {
     expect(reportModel.create).not.toHaveBeenCalled();
   });
 
-  // TC_02: Lỗi - message.reason là null
-  test("TC_02: should throw AppError(400) if reason is null", async () => {
+  test("TC_02: Để lý do báo cáo (reason) là null", async () => {
     const message = { userId: "1", reportedBy: "2", reason: null };
 
     await expect(createReportHandler(message)).rejects.toMatchObject({
@@ -34,7 +32,7 @@ describe("createReportHandler Unit Tests", () => {
   });
 
   // TC_03: Lỗi - Tự báo cáo (userId === reportedBy)
-  test("TC_03: should throw AppError(400) if userId equals reportedBy", async () => {
+  test("TC_03: Tự báo cáo chính mình (userId === reportedBy)", async () => {
     const message = {
       userId: "1",
       reportedBy: "1",
@@ -48,8 +46,7 @@ describe("createReportHandler Unit Tests", () => {
     expect(reportModel.create).not.toHaveBeenCalled();
   });
 
-  // TC_04: Lỗi - Thiếu reason VÀ Tự báo cáo (Ưu tiên lỗi reason)
-  test("TC_04: should throw AppError(400) for missing reason even if userId equals reportedBy", async () => {
+  test("TC_04: Lý do báo cáo (reason) không có và tự báo cáo chính mình", async () => {
     const message = { userId: "5", reportedBy: "5", reason: undefined };
 
     await expect(createReportHandler(message)).rejects.toMatchObject({
@@ -59,8 +56,7 @@ describe("createReportHandler Unit Tests", () => {
     expect(reportModel.create).not.toHaveBeenCalled();
   });
 
-  // TC_05: Lỗi - Thực thi (reportModel.create thất bại)
-  test("TC_05: should throw error if reportModel.create fails", async () => {
+  test("TC_05: Tạo mới bản report thất bại (reportModel.create thất bại)", async () => {
     const message = {
       userId: "2",
       reportedBy: "1",
@@ -77,8 +73,7 @@ describe("createReportHandler Unit Tests", () => {
     expect(reportModel.create).toHaveBeenCalledWith(message);
   });
 
-  // TC_06: Thành công (Trường hợp 1)
-  test("TC_06: should create and return report on valid input (case 1)", async () => {
+  test("TC_06: Tạo mới báo cáo thành công 1", async () => {
     const message = {
       userId: "10",
       reportedBy: "11",
@@ -95,8 +90,7 @@ describe("createReportHandler Unit Tests", () => {
     expect(reportModel.create).toHaveBeenCalledWith(message);
   });
 
-  // TC_07: Thành công (Trường hợp 2 - dữ liệu khác)
-  test("TC_07: should create and return report on valid input (case 2)", async () => {
+  test("TC_07: Tạo mới báo cáo thành công 2", async () => {
     const message = {
       userId: "99",
       reportedBy: "1",
@@ -109,6 +103,30 @@ describe("createReportHandler Unit Tests", () => {
     const result = await createReportHandler(message);
 
     expect(result).toEqual(mockCreatedReport);
+    expect(reportModel.create).toHaveBeenCalledTimes(1);
+    expect(reportModel.create).toHaveBeenCalledWith(message);
+  });
+
+  // Test case mới để cover nhánh 5xx
+  test("TC_08: Xử lý lỗi server khi tạo báo cáo", async () => {
+    const message = {
+      userId: "1",
+      reportedBy: "2",
+      reason: "Server error test"
+    };
+
+    // Mock một lỗi server với AppError có statusCode 500
+    const mockServerError = new AppError(
+      "Lỗi hệ thống, vui lòng thử lại sau",
+      500
+    );
+    reportModel.create.mockRejectedValue(mockServerError);
+
+    await expect(createReportHandler(message)).rejects.toMatchObject({
+      statusCode: 500,
+      message: "Lỗi hệ thống, vui lòng thử lại sau",
+      status: "error" // Kiểm tra nhánh "error" trong ternary
+    });
     expect(reportModel.create).toHaveBeenCalledTimes(1);
     expect(reportModel.create).toHaveBeenCalledWith(message);
   });

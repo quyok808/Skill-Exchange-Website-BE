@@ -5,7 +5,6 @@ const AppError = require("../utils/appError");
 const BlacklistedToken = require("../models/blacklistedToken.model");
 
 exports.protect = catchAsync(async (req, res, next) => {
-  // 1) Lấy token từ header
   let token;
   if (
     req.headers.authorization &&
@@ -20,16 +19,13 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 2) Kiểm tra xem token có nằm trong danh sách đen hay không
   const blacklistedToken = await BlacklistedToken.findOne({ token });
   if (blacklistedToken) {
     return next(new AppError("Invalid token! Please log in again.", 401));
   }
 
-  // 3) Xác minh token
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  // 4) Kiểm tra xem user có còn tồn tại không
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
     return next(
@@ -40,14 +36,12 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 5) Kiểm tra xem user có thay đổi password sau khi token được tạo không
   if (currentUser.changedAfter(decoded.iat)) {
     return next(
       new AppError("User recently changed password! Please log in again.", 401)
     );
   }
 
-  // Gán user vào request
   req.user = currentUser;
   next();
 });
