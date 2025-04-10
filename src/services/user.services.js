@@ -565,7 +565,13 @@ exports.getImagePath = async (userId) => {
       throw new AppError("Image not found", 404);
     }
 
-    const absolutePath = path.join(__dirname, "../uploads/avatars", imagePath);
+    const absolutePath = path.join(
+      __dirname,
+      "..",
+      "uploads",
+      "avatars",
+      imagePath
+    );
     return absolutePath;
   } catch (error) {
     throw error;
