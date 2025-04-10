@@ -4,7 +4,7 @@ const getDataFromMediator = require("../utils/promise_Mediator");
 
 // Lấy tất cả users (ví dụ, chỉ admin mới có quyền)
 exports.getAllUsers = catchAsync(async (req, res, next) => {
-  mediator.emit("getAllUsers", { query: "" });
+  mediator.emit("getAllUsers", { query: req.query });
 
   const { users, features, totalPages, totalUsers } = await getDataFromMediator(
     "getAllUsersResult",

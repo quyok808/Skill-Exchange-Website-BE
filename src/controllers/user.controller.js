@@ -165,7 +165,11 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
 
 // Quên mật khẩu
 exports.forgotPassword = catchAsync(async (req, res, next) => {
-  await userService.forgotPassword(req.body.email, "http", "localhost:5173");
+  await userService.forgotPassword(
+    req.body.email,
+    req.protocol,
+    `localhost:5173`
+  );
   res.status(200).json({
     status: "success",
     message: "Token sent to email!"

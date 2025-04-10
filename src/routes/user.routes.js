@@ -11,16 +11,16 @@ const router = express.Router();
 
 router.post("/register", validateRegister, userController.register);
 router.post("/login", userController.login);
-router.post("/forgot-password", userController.forgotPassword); // Route để quên mật khẩu
+router.post("/forgot-password", userController.forgotPassword);
 router.put(
   "/reset-password/:token",
   validateResetPassword,
   userController.resetPassword
-); // Route để reset mật khẩu
-router.get("/verify-email/:token", userController.verifyEmail); // Route để xác thực email
-router.post("/logout", authMiddleware.protect, userController.logout); // Thêm route logout
+);
+router.get("/verify-email/:token", userController.verifyEmail);
+router.post("/logout", authMiddleware.protect, userController.logout);
 
-router.use(authMiddleware.protect); // Apply protect middleware
+router.use(authMiddleware.protect);
 // Các route cần xác thực (Tất cả role)
 router.put(
   "/upload-photo",
