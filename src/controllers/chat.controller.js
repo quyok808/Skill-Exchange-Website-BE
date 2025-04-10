@@ -16,12 +16,6 @@ const getBase64 = (filePath) => {
   }
 };
 
-// Gửi tin nhắn
-const catchAsync = require("../utils/catchAsync");
-const AppError = require("../utils/appError");
-const ChatRoom = require("../models/chatRoomModel"); // Giả sử bạn có model này
-const Message = require("../models/messageModel"); // Giả sử bạn có model này
-
 exports.sendMessage = catchAsync(async (req, res, next) => {
   const { chatRoomId, content } = req.body; // Lấy chatRoomId và content từ req.body
   const senderId = req.user.id;
