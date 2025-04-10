@@ -17,60 +17,39 @@ const getBase64 = (filePath) => {
 };
 
 // Gửi tin nhắn
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
+const ChatRoom = require("../models/chatRoomModel"); // Giả sử bạn có model này
+const Message = require("../models/messageModel"); // Giả sử bạn có model này
+
 exports.sendMessage = catchAsync(async (req, res, next) => {
-  const chatRoomId = req.body.chatRoomId; // Lấy chatRoomId trực tiếp từ req.body
+  const { chatRoomId, content } = req.body; // Lấy chatRoomId và content từ req.body
   const senderId = req.user.id;
-  let fileUrl = null;
-  let imageUrl = null;
-  let content = req.body.content; // Lấy content từ req.body
+
+  // Kiểm tra phòng chat
   const chatRoom = await ChatRoom.findById(chatRoomId);
   if (!chatRoom) {
     return next(new AppError("Phòng chat không tồn tại!", 404));
   }
 
-  // Nếu có file được upload
-  if (req.files && req.files["file"]) {
-    fileUrl = req.files["file"][0].filename;
-  }
-
-  // Nếu có ảnh được upload
-  if (req.files && req.files["image"]) {
-    imageUrl = req.files["image"][0].filename;
-  }
+  // Lấy URL từ Cloudinary (nếu có) từ middleware upload
+  const fileUrl = req.fileUrl || null; // Từ middleware uploadMessageFile hoặc uploadBoth
+  const imageUrl = req.imageUrl || null; // Từ middleware uploadImage hoặc uploadBoth
 
   // Tạo tin nhắn mới
   const newMessage = await Message.create({
     chatRoom: chatRoomId,
     sender: senderId,
-    content: content, // Nội dung tin nhắn (có thể null)
-    file: fileUrl, // URL của file (có thể null)
-    image: imageUrl // URL của ảnh (có thể null)
+    content: content || null, // Nội dung tin nhắn (có thể null)
+    file: fileUrl, // URL của file từ Cloudinary (có thể null)
+    image: imageUrl // URL của ảnh từ Cloudinary (có thể null)
   });
 
-  // **Quan trọng: Populate sender trước khi gửi qua Socket.IO**
+  // Populate sender trước khi gửi qua Socket.IO
   const populatedMessage = await Message.findById(newMessage._id).populate(
     "sender",
     "name email"
   );
-
-  if (populatedMessage.image) {
-    const imagePath = path.join(
-      __dirname,
-      "../uploads/images",
-      populatedMessage.image
-    ); // Đường dẫn đến file ảnh
-    const imageBase64 = getBase64(imagePath);
-    populatedMessage.image = `data:image/png;base64,${imageBase64}`;
-  }
-  if (populatedMessage.file) {
-    const filePath = path.join(
-      __dirname,
-      "../uploads/messages",
-      populatedMessage.file
-    ); // Đường dẫn đến file
-    const fileBase64 = getBase64(filePath);
-    populatedMessage.file = `data:application/pdf;base64,${fileBase64}`;
-  }
 
   // Gửi tin nhắn real-time qua Socket.IO
   const io = req.app.get("io");
